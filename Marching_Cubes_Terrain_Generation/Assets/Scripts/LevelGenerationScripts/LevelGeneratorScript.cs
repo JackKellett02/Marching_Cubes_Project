@@ -105,7 +105,7 @@ public class LevelGeneratorScript : MonoBehaviour {
 
 		//Make sure the level falloff map is initialised.
 		Vector2Int test = new Vector2Int(levelSize.x - 2, levelSize.y - 2);
-		NoiseMapGenerator.InitialiseFalloffMap(test, new Vector2(chunkSize.x, chunkSize.z), chunkCubeSize);
+		LevelNoiseGenerator.InitialiseFalloffMap(test, new Vector2(chunkSize.x, chunkSize.z), chunkCubeSize);
 
 		//Create the chunks and position them correctly.
 		int startPosX = (0 - (int)(levelSize.x * 0.5f));
