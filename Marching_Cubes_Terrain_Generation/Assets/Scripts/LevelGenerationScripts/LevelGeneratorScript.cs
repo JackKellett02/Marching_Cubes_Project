@@ -11,6 +11,9 @@ public class LevelGeneratorScript : MonoBehaviour {
 	private NoiseSettings noiseSettings = null;
 
 	[SerializeField]
+	private bool randomiseSeed = true;
+
+	[SerializeField]
 	[Range(0.0f, 1.0f)]
 	private float surfaceThreshold = 0.5f;
 
@@ -45,7 +48,7 @@ public class LevelGeneratorScript : MonoBehaviour {
 
 	#region Private Functions.
 	private void Start() {
-		
+
 	}
 	private void Update() {
 		if (chunkQueue != null && Application.isPlaying) {
@@ -93,6 +96,10 @@ public class LevelGeneratorScript : MonoBehaviour {
 	#region Public Access Functions.
 
 	public void CreateLevel() {
+		if (randomiseSeed)
+		{
+			RandomiseSeed();
+		}
 		if (levelChunks != null) {
 			levelChunks.Clear();
 			levelChunks = null;
@@ -111,6 +118,7 @@ public class LevelGeneratorScript : MonoBehaviour {
 		int startPosX = (0 - (int)(levelSize.x * 0.5f));
 		int startPosZ = (0 - (int)(levelSize.y * 0.5f));
 		int lastX = startPosX;
+		int chunkCount = 0;
 		for (int z = startPosZ; z < startPosZ + levelSize.y; z++) {
 			List<GameObject> currentRow = new List<GameObject>();
 			for (int x = startPosX; x < startPosX + levelSize.x; x++) {
@@ -132,33 +140,39 @@ public class LevelGeneratorScript : MonoBehaviour {
 				//Add it to the chunk map.
 				currentRow.Add(currentChunk);
 				chunkQueue.Enqueue(currentChunk);
+				chunkCount++;
 			}
 			levelChunks.Add(currentRow);
 		}
+
+		//Get number of control nodes.
+		int sizeX = CalculateNumberOfControlNodesInGrid(chunkSize.x, chunkCubeSize);
+		int sizeY = CalculateNumberOfControlNodesInGrid(chunkSize.y, chunkCubeSize);
+		int sizeZ = CalculateNumberOfControlNodesInGrid(chunkSize.z, chunkCubeSize);
+		Vector3Int gridSize = new Vector3Int(sizeX, sizeY, sizeZ);
 
 		//Generate the chunk meshes here if in editor.
 		if (!Application.isPlaying) {
 			//Clear the chunk queue as it won't be used.
 			chunkQueue.Clear();
 
+
 			//Loop through the map and generate the meshes for each chunk.
 			for (int z = 0; z < levelChunks.Count; z++) {
 				for (int x = 0; x < levelChunks[z].Count; x++) {
-					LevelChunkScript currentGenerationScript =
-						levelChunks[z][x].GetComponent<LevelChunkScript>();
+					LevelChunkScript currentGenerationScript = levelChunks[z][x].GetComponent<LevelChunkScript>();
 					if (currentGenerationScript != null) {
-						//Get number of control nodes.
-						int sizeX = CalculateNumberOfControlNodesInGrid(chunkSize.x, chunkCubeSize);
-						int sizeY = CalculateNumberOfControlNodesInGrid(chunkSize.y, chunkCubeSize);
-						int sizeZ = CalculateNumberOfControlNodesInGrid(chunkSize.z, chunkCubeSize);
-						Vector3Int gridSize = new Vector3Int(sizeX, sizeY, sizeZ);
-
 						currentGenerationScript.StartGeneration(chunkSize, gridSize, chunkCubeSize,
 							surfaceThreshold, noiseSettings, terrainHeights, heightMultiplier);
 					}
 				}
 			}
 		}
+
+		#region Benchmark Stuff.
+		BenchmarkScript.AddTotalChunkCount(chunkCount);
+		BenchmarkScript.AddVoxelsPerChunk(sizeX * sizeY * sizeZ);
+		#endregion
 	}
 
 	public void DestroyAllChunks(int destroyIterations) {
@@ -177,6 +191,12 @@ public class LevelGeneratorScript : MonoBehaviour {
 		levelChunks = null;
 	}
 
+	public void RandomiseSeed()
+	{
+		noiseSettings.seed = (int)(noiseSettings.seed * Time.time) + (int)(noiseSettings.seed * Time.deltaTime) + (int)(noiseSettings.seed * (1.0f / Time.deltaTime));
+		System.Random prng = NoiseUtility.SeedNoise(noiseSettings);
+		noiseSettings.seed = prng.Next(-100000, 100000);
+	}
 
 	public static int CalculateNumberOfControlNodesInGrid(float gridSizeValue, float cubeSize) {
 		int number = (int)(gridSizeValue / cubeSize);

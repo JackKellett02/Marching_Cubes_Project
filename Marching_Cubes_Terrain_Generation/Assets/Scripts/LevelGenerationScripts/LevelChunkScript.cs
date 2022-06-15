@@ -118,6 +118,10 @@ public class LevelChunkScript : MonoBehaviour {
 		mesh.vertices = a_meshData.vertices.ToArray();
 		mesh.triangles = a_meshData.triangles.ToArray();
 		mesh.normals = a_meshData.normals;
+
+		#region BENCHMARK.
+		BenchmarkScript.IncrementCompleteChunks();
+		#endregion
 	}
 
 	private void GenerateChunk(ChunkGenerationData generationData) {
