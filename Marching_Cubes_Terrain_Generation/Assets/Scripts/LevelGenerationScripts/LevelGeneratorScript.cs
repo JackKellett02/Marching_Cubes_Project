@@ -52,7 +52,7 @@ public class LevelGeneratorScript : MonoBehaviour {
 			for (int i = 0; i < chunksPerFrame; i++) {
 				if (chunkQueue.Count > 0) {
 					GameObject currentChunk = chunkQueue.Dequeue();
-					ChunkGenerationScript currentGenerationScript = currentChunk.GetComponent<ChunkGenerationScript>();
+					LevelChunkScript currentGenerationScript = currentChunk.GetComponent<LevelChunkScript>();
 					if (currentGenerationScript != null) {
 						//Get number of control nodes.
 						int sizeX = CalculateNumberOfControlNodesInGrid(chunkSize.x, chunkCubeSize);
@@ -75,7 +75,7 @@ public class LevelGeneratorScript : MonoBehaviour {
 		newChunk.transform.parent = parent;
 
 		//Add the correct components.
-		ChunkGenerationScript chunkGenerationScript = newChunk.AddComponent<ChunkGenerationScript>();
+		LevelChunkScript chunkGenerationScript = newChunk.AddComponent<LevelChunkScript>();
 		MeshFilter meshFilter = newChunk.AddComponent<MeshFilter>();
 		MeshRenderer meshRenderer = newChunk.AddComponent<MeshRenderer>();
 		if (chunkMaterial) {
@@ -105,7 +105,7 @@ public class LevelGeneratorScript : MonoBehaviour {
 
 		//Make sure the level falloff map is initialised.
 		Vector2Int test = new Vector2Int(levelSize.x - 2, levelSize.y - 2);
-		LevelNoiseGenerator.InitialiseFalloffMap(test, new Vector2(chunkSize.x, chunkSize.z), chunkCubeSize);
+		LevelChunkScript.InitialiseFalloffMap(test, new Vector2(chunkSize.x, chunkSize.z), chunkCubeSize);
 
 		//Create the chunks and position them correctly.
 		int startPosX = (0 - (int)(levelSize.x * 0.5f));
@@ -144,8 +144,8 @@ public class LevelGeneratorScript : MonoBehaviour {
 			//Loop through the map and generate the meshes for each chunk.
 			for (int z = 0; z < levelChunks.Count; z++) {
 				for (int x = 0; x < levelChunks[z].Count; x++) {
-					ChunkGenerationScript currentGenerationScript =
-						levelChunks[z][x].GetComponent<ChunkGenerationScript>();
+					LevelChunkScript currentGenerationScript =
+						levelChunks[z][x].GetComponent<LevelChunkScript>();
 					if (currentGenerationScript != null) {
 						//Get number of control nodes.
 						int sizeX = CalculateNumberOfControlNodesInGrid(chunkSize.x, chunkCubeSize);
@@ -351,4 +351,26 @@ public class LevelGeneratorScript : MonoBehaviour {
 		}
 	}
 	#endregion
+}
+
+public struct MapData {
+	public readonly float[,,] map;
+	public readonly float[,,] normalMap;
+	public readonly float cubeSize;
+
+	public MapData(float[,,] gridMap, float[,,] normMap, float size) {
+		map = gridMap;
+		normalMap = normMap;
+		cubeSize = size;
+	}
+}
+
+public struct ChunkData {
+	public readonly float[,] heightMap;
+	public readonly float[,,] chunkNoise;
+
+	public ChunkData(float[,] heights, float[,,] noise) {
+		heightMap = heights;
+		chunkNoise = noise;
+	}
 }

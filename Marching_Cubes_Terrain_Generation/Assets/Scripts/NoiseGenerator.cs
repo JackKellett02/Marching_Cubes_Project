@@ -116,15 +116,9 @@ public static class NoiseUtility
 	}
 }
 
-public static class EndlessTerrainNoise
-{
-	#region Class Variables.
-
-	private static Dictionary<Vector2, NoiseUtility.FallOffData> falloffMap;
-	#endregion
-
+public static class NoiseGenerator {
 	#region Class Public Functions.
-	public static float[,] GenerateNoiseMap(int mapWidth, int mapLength, float sampleSize, Vector3 chunkPos, bool useFalloff, NoiseSettings noiseSettings) {
+	public static float[,] GenerateNoiseMap(int mapWidth, int mapLength, float sampleSize, Vector3 chunkPos, NoiseSettings noiseSettings) {
 		float[,] noiseMap = new float[mapWidth, mapLength];
 
 		//If noise has not been seeded, seed it.
@@ -143,33 +137,15 @@ public static class EndlessTerrainNoise
 				float sampleZ = (samplePoint.y + offsets.y) / noiseSettings.scale;
 
 				float perlinValue = NoiseUtility.CalculateNoiseValue(sampleX, sampleZ);
-				if (useFalloff) {
-					//Initialise Value.
-					float falloffValue = 0.0f;
-
-					//Calculate position in falloff map of current node.
-					lock (falloffMap) {
-						//Check the key exists.
-						if (falloffMap.ContainsKey(samplePoint)) {
-							falloffValue = falloffMap[samplePoint].falloffValue;
-							lastFalloffValue = falloffValue;
-						} else {
-							falloffValue = lastFalloffValue;
-						}
-					}
-
-					//Add it to the height map.
-					noiseMap[x, z] = Mathf.Clamp01(perlinValue + falloffValue);
-				} else {
-					noiseMap[x, z] = perlinValue;
-				}
+				noiseMap[x, z] = perlinValue;
+				
 			}
 		}
 
 		return noiseMap;
 	}
 
-	public static float[,,] Generate3DNoiseMap(int mapWidth, int mapHeight, int mapLength, float sampleSize, Vector3 chunkPos, bool useFalloff, NoiseSettings noiseSettings) {
+	public static float[,,] Generate3DNoiseMap(int mapWidth, int mapHeight, int mapLength, float sampleSize, Vector3 chunkPos, NoiseSettings noiseSettings) {
 		float[,,] noiseMap = new float[mapWidth, mapHeight, mapLength];
 
 		//If noise has not been seeded, seed it.
@@ -184,7 +160,6 @@ public static class EndlessTerrainNoise
 			for (int y = 0; y < mapHeight; y++) {
 				for (int x = 0; x < mapWidth; x++) {
 					Vector3 samplePoint = NoiseUtility.CalculateWorldSpacePos3D(x, y, z, mapWidth, mapHeight, mapLength, sampleSize, chunkPos);
-					Vector2 samplePoint2D = NoiseUtility.CalculateWorldSpacePos(x, z, mapWidth, mapLength, sampleSize, chunkPos);
 					float sampleX = (samplePoint.x + offsets.x) / noiseSettings.scale;
 					float sampleY = (samplePoint.y / noiseSettings.scale);
 					float sampleZ = (samplePoint.z + offsets.y) / noiseSettings.scale;
@@ -206,129 +181,6 @@ public static class EndlessTerrainNoise
 		return noiseMap;
 	}
 
-	public static void InitialiseFalloffMap(Vector2Int levelSize, Vector2 chunkSize, float cubeSize) {
-		falloffMap = new Dictionary<Vector2, NoiseUtility.FallOffData>();
-		lock (falloffMap) {
-			falloffMap = NoiseUtility.GenerateLevelFalloffMap(levelSize, chunkSize, cubeSize);
-		}
-	}
-	#endregion
-}
 
-public static class LevelNoiseGenerator {
-	#region Class Variables.
-
-	private static Dictionary<Vector2, NoiseUtility.FallOffData> falloffMap;
-	#endregion
-
-	#region Class Public Functions.
-	public static float[,] GenerateNoiseMap(int mapWidth, int mapLength, float sampleSize, Vector3 chunkPos, bool useFalloff, NoiseSettings noiseSettings) {
-		float[,] noiseMap = new float[mapWidth, mapLength];
-
-		//If noise has not been seeded, seed it.
-		System.Random prng = NoiseUtility.SeedNoise(noiseSettings);
-
-		//Generate offsets.
-		Vector2 offsets = noiseSettings.offset;
-		offsets += new Vector2(prng.Next(-100000, 100000), prng.Next(-100000, 100000));
-		float lastFalloffValue = 0.0f;
-
-		//Populate the noise map.
-		for (int z = 0; z < mapLength; z++) {
-			for (int x = 0; x < mapWidth; x++) {
-				Vector2 samplePoint = NoiseUtility.CalculateWorldSpacePos(x, z, mapWidth, mapLength, sampleSize, chunkPos);
-				float sampleX = (samplePoint.x + offsets.x) / noiseSettings.scale;
-				float sampleZ = (samplePoint.y + offsets.y) / noiseSettings.scale;
-
-				float perlinValue = NoiseUtility.CalculateNoiseValue(sampleX, sampleZ);
-				if (useFalloff) {
-					//Initialise Value.
-					float falloffValue = 0.0f;
-
-					//Calculate position in falloff map of current node.
-					lock (falloffMap) {
-						//Check the key exists.
-						if (falloffMap.ContainsKey(samplePoint)) {
-							falloffValue = falloffMap[samplePoint].falloffValue;
-							lastFalloffValue = falloffValue;
-						} else {
-							falloffValue = lastFalloffValue;
-						}
-					}
-
-					//Add it to the height map.
-					noiseMap[x, z] = Mathf.Clamp01(perlinValue + falloffValue);
-				} else {
-					noiseMap[x, z] = perlinValue;
-				}
-			}
-		}
-
-		return noiseMap;
-	}
-
-	public static float[,,] Generate3DNoiseMap(int mapWidth, int mapHeight, int mapLength, float sampleSize, Vector3 chunkPos, bool useFalloff, NoiseSettings noiseSettings) {
-		float[,,] noiseMap = new float[mapWidth, mapHeight, mapLength];
-
-		//If noise has not been seeded, seed it.
-		System.Random prng = NoiseUtility.SeedNoise(noiseSettings);
-
-		//Generate offsets.
-		Vector2 offsets = noiseSettings.offset;
-		offsets += new Vector2(prng.Next(-100000, 100000), prng.Next(-100000, 100000));
-		bool lastFalloffValue = false;
-
-		//Populate the noise map.
-		for (int z = 0; z < mapLength; z++) {
-			for (int y = 0; y < mapHeight; y++) {
-				for (int x = 0; x < mapWidth; x++) {
-					Vector3 samplePoint = NoiseUtility.CalculateWorldSpacePos3D(x, y, z, mapWidth, mapHeight, mapLength, sampleSize, chunkPos);
-					Vector2 samplePoint2D = NoiseUtility.CalculateWorldSpacePos(x, z, mapWidth, mapLength, sampleSize, chunkPos);
-					float sampleX = (samplePoint.x + offsets.x) / noiseSettings.scale;
-					float sampleY = (samplePoint.y / noiseSettings.scale);
-					float sampleZ = (samplePoint.z + offsets.y) / noiseSettings.scale;
-
-					float perlinValue = NoiseUtility.Perlin3D(sampleX, sampleY, sampleZ);
-					float weightedValue = perlinValue;
-					if (y <= 0) {
-						weightedValue = 1.0f;
-					} else if (y <= 3) {
-						weightedValue = (weightedValue * 1.5f);
-						weightedValue = Mathf.Clamp(weightedValue, 0.0f, 1.0f);
-					}
-					if (useFalloff) {
-						//Initialise Value.
-						bool falloffValue = false;
-
-						//Calculate position in falloff map of current node.
-						lock (falloffMap) {
-							//Check the key exists.
-							if (falloffMap.ContainsKey(samplePoint2D)) {
-								falloffValue = falloffMap[samplePoint2D].edgePoint;
-							} else {
-								falloffValue = true;
-							}
-						}
-
-						//Add it to the height map.
-						if (falloffValue) {
-							weightedValue = 1.0f;
-						}
-					}
-					noiseMap[x, y, z] = weightedValue;
-
-				}
-			}
-		}
-
-		return noiseMap;
-	}
-
-	public static void InitialiseFalloffMap(Vector2Int levelSize, Vector2 chunkSize, float cubeSize) {
-		falloffMap = new Dictionary<Vector2, NoiseUtility.FallOffData>();
-		lock (falloffMap) {
-			falloffMap = NoiseUtility.GenerateLevelFalloffMap(levelSize, chunkSize, cubeSize);
-		}
-	}
 	#endregion
 }
