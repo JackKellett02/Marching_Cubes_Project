@@ -95,6 +95,15 @@ public class LevelGeneratorScript : MonoBehaviour {
 
 	#region Public Access Functions.
 
+	public void SetLevelSettings(float a_threshhold, float a_heightMultiplier, Vector2Int a_levelSize, Vector3 a_chunkSize, float a_cubeSize)
+	{
+		surfaceThreshold = a_threshhold;
+		heightMultiplier = a_heightMultiplier;
+		levelSize = a_levelSize;
+		chunkSize = a_chunkSize;
+		chunkCubeSize = a_cubeSize;
+	}
+
 	public void CreateLevel() {
 		if (randomiseSeed)
 		{

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class BenchmarkScript : MonoBehaviour {
 	#region Variables to Assign via the unity inspector (SerializeFields).
@@ -9,10 +10,19 @@ public class BenchmarkScript : MonoBehaviour {
 	private int testIterations = 10;
 
 	[SerializeField]
+	private Text testIterationText = null;
+
+	[SerializeField]
+	private Slider iterationSlider = null;
+
+	[SerializeField]
 	private LevelGeneratorScript levelGen = null;
 
 	[SerializeField]
 	private Text frameRateText = null;
+
+	[SerializeField]
+	private GameObject SettingsObjects = null;
 	#endregion
 
 	#region Private Variable Declarations.
@@ -22,7 +32,6 @@ public class BenchmarkScript : MonoBehaviour {
 	private float minFrameRate = float.MaxValue;
 	private float destructionTime = 0.0f;
 	private int frameCounter = 0;
-	private bool canStart = true;
 	private bool benchMarkStarted = false;
 	private int iterationsComplete = 0;
 
@@ -33,8 +42,7 @@ public class BenchmarkScript : MonoBehaviour {
 
 	#region Private Functions.
 	// Start is called before the first frame update
-	void Start()
-	{
+	void Start() {
 		destructionTime = 0.0f;
 		iterationsComplete = 0;
 		voxelsPerChunk = 0;
@@ -45,23 +53,21 @@ public class BenchmarkScript : MonoBehaviour {
 		if (frameRateText) {
 			frameRateText.gameObject.SetActive(false);
 		}
+
+		if (testIterationText) {
+			testIterationText.text = "Number Of Test Iterations: " + testIterations;
+		}
+
+		if (iterationSlider) {
+			iterationSlider.value = testIterations;
+		}
 	}
 
 	// Update is called once per frame
 	void Update() {
-		if (canStart && Input.GetKeyDown(KeyCode.Space)) {
-			//Start benchmark.
-			canStart = false;
-			startTime = Time.time;
-			benchMarkStarted = true;
-			if (frameRateText) {
-				frameRateText.gameObject.SetActive(true);
-			}
-
-			//Start generation of the terrain.
-			if (levelGen != null) {
-				levelGen.CreateLevel();
-			}
+		if (Input.GetKeyDown(KeyCode.Escape)) {
+			//Load the main menu if the test is over and the user presses escape.
+			SceneManager.LoadScene(0);
 		}
 	}
 
@@ -92,8 +98,7 @@ public class BenchmarkScript : MonoBehaviour {
 					Debug.Log("End Time: " + Time.time);
 				} else {
 					//Start next iteration.
-					if (levelGen != null)
-					{
+					if (levelGen != null) {
 						float testTime = Time.time;
 						levelGen.DestroyAllChunks(30);
 						testTime = Time.time - testTime;
@@ -118,6 +123,74 @@ public class BenchmarkScript : MonoBehaviour {
 	#endregion
 
 	#region Public Access Functions (Getters and Setters).
+
+	public void StartBenchmark(int setting) {
+		//Make sure the terrain settings are set to the correct values for the current test setting..
+		switch (setting) {
+			case 0: {
+					levelGen.SetLevelSettings(0.4f, 64.0f, new Vector2Int(11, 11), new Vector3(32.0f, 128.0f, 32.0f), 8.0f);
+					break;
+				}
+			case 1: {
+					levelGen.SetLevelSettings(0.4f, 64.0f, new Vector2Int(21, 21), new Vector3(16.0f, 128.0f, 16.0f), 4.0f);
+					break;
+				}
+			case 2: {
+					levelGen.SetLevelSettings(0.4f, 64.0f, new Vector2Int(43, 43), new Vector3(8.0f, 128.0f, 8.0f), 2.0f);
+					break;
+				}
+			case 3: {
+					levelGen.SetLevelSettings(0.4f, 64.0f, new Vector2Int(85, 85), new Vector3(4.0f, 128.0f, 4.0f), 1.0f);
+					break;
+				}
+			case 4: {
+					levelGen.SetLevelSettings(0.4f, 64.0f, new Vector2Int(171, 171), new Vector3(2.0f, 128.0f, 2.0f), 0.5f);
+					break;
+				}
+			default: {
+					//If we get to the default case we want to just get out of the function before we hit the start benchmark and terrain stuff.
+					return;
+					break;
+				}
+		}
+
+		//Modify UI.
+		if (frameRateText) {
+			frameRateText.gameObject.SetActive(true);
+		}
+
+		//Tell the user they can return to menu.
+		if (testIterationText) {
+			testIterationText.gameObject.SetActive(true);
+			testIterationText.text = "Press 'Escape' to return to the main menu.";
+		}
+
+		if (iterationSlider) {
+			iterationSlider.gameObject.SetActive(false);
+		}
+
+		if (SettingsObjects) {
+			SettingsObjects.SetActive(false);
+		}
+
+		//Start benchmark.
+		Application.targetFrameRate = 1000;
+		startTime = Time.time;
+		benchMarkStarted = true;
+
+		//Start generation of the terrain.
+		if (levelGen != null) {
+			levelGen.CreateLevel();
+		}
+	}
+
+	public void SetTestIterationCount(float iterationCount) {
+		testIterations = (int)iterationCount;
+		if (testIterationText) {
+			testIterationText.text = "Number Of Test Iterations: " + testIterations;
+		}
+	}
+
 	public static void SetTotalChunkCount(int chunkCount) {
 		totalChunkCount = chunkCount;
 	}
