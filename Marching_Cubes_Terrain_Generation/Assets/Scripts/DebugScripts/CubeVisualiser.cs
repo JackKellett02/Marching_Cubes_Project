@@ -9,12 +9,10 @@ public class CubeVisualiser : MonoBehaviour
 {
     FreeMovementCamera mainCamera;
     public MeshFilter levelMeshFilter = null;
-    private MarchingCubes meshGen;
 
     public void GenerateNextConfig(int config)
     {
-	    meshGen = gameObject.GetComponent<MarchingCubes>();
-        float[,,] map = new float[2, 2, 2];
+	    float[,,] map = new float[2, 2, 2];
 	    for (int z = 0; z < 2; z++)
 	    {
 		    for (int y = 0; y < 2; y++)
@@ -27,7 +25,7 @@ public class CubeVisualiser : MonoBehaviour
 	    }
 
         //Generate the next config.
-        levelMeshFilter.mesh = meshGen.DebugGenMesh(config, map);
+        levelMeshFilter.mesh = MarchingCubes.DebugGenMesh(config, map);
     }
 
     private void Start()

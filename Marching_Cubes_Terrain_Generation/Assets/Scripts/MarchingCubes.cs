@@ -1,46 +1,9 @@
 using System;
-using System.Threading;
-using System.Collections;
 using System.Collections.Generic;
-using Unity.Mathematics;
-using Unity.VisualScripting;
 using UnityEngine;
 
-[ExecuteAlways]
-public class MarchingCubes : MonoBehaviour {
-	#region Variable Declarations.
-	private static Queue<MapThreadInfo<MeshData>> meshDataInfoQueue = null;
-	#endregion
-
+public static class MarchingCubes {
 	#region Private Functions.
-	private void Awake() {
-		meshDataInfoQueue = new Queue<MapThreadInfo<MeshData>>();
-	}
-
-	private void Update() {
-		if (meshDataInfoQueue != null) {
-			if (meshDataInfoQueue.Count > 0) {
-				for (int i = 0; i < meshDataInfoQueue.Count; i++) {
-					MapThreadInfo<MeshData> threadInfo = meshDataInfoQueue.Dequeue();
-					threadInfo.callback(threadInfo.parameter);
-				}
-			}
-		}
-	}
-
-	private static MeshData GenerateMesh(float[,,] map, float[,,] normalsMap, float cubeSize) {
-		//Create the cube grid and the vert and tri lists.
-		CubeGrid cubeGrid = new CubeGrid(map, cubeSize);
-		MeshData chunkMeshData = GetMeshData(cubeGrid, false);
-
-		//Create the cube grid used to calculate the normals.
-		CubeGrid normalGrid = new CubeGrid(normalsMap, cubeSize);
-		MeshData normalMeshData = GetMeshData(normalGrid, true);
-
-		chunkMeshData.normals = normalMeshData.GetNormals(chunkMeshData.vertices);
-		return chunkMeshData;
-	}
-
 	private static MeshData GetMeshData(CubeGrid cubeGrid, bool calcNormals) {
 		MeshData meshData = new MeshData();
 		List<int> tris = new List<int>();
@@ -100,32 +63,23 @@ public class MarchingCubes : MonoBehaviour {
 
 		return meshData;
 	}
-
-	private static void MeshDataThread(MapData chunkData, Action<MeshData> a_callback) {
-		if (meshDataInfoQueue == null) {
-			meshDataInfoQueue = new Queue<MapThreadInfo<MeshData>>();
-		}
-		MeshData meshData = GenerateMesh(chunkData.map, chunkData.normalMap, chunkData.cubeSize);
-		lock (meshDataInfoQueue) {
-			meshDataInfoQueue.Enqueue(new MapThreadInfo<MeshData>(a_callback, meshData));
-		}
-	}
 	#endregion
 
 	#region Public Access Functions.
+	public static MeshData GenerateMesh(float[,,] map, float[,,] normalsMap, float cubeSize) {
+		//Create the cube grid and the vert and tri lists.
+		CubeGrid cubeGrid = new CubeGrid(map, cubeSize);
+		MeshData chunkMeshData = GetMeshData(cubeGrid, false);
 
-	public static void RequestMeshData(MapData chunkData, Action<MeshData> a_callback) {
-		ThreadStart threadStart = delegate {
-			MeshDataThread(chunkData, a_callback);
-		};
-		Debug.Log("Mesh Data Thread Started.");
+		//Create the cube grid used to calculate the normals.
+		CubeGrid normalGrid = new CubeGrid(normalsMap, cubeSize);
+		MeshData normalMeshData = GetMeshData(normalGrid, true);
 
-		Thread thread = new Thread(threadStart);
-		thread.Name = "Mesh Data Thread.";
-		thread.Start();
+		chunkMeshData.normals = normalMeshData.GetNormals(chunkMeshData.vertices);
+		return chunkMeshData;
 	}
 
-	public Mesh DebugGenMesh(int a_config, float[,,] map) {
+	public static Mesh DebugGenMesh(int a_config, float[,,] map) {
 		//Create the cube grid and the vert and tri lists.
 		CubeGrid cubeGrid = new CubeGrid(map, 1.0f);
 		List<Vector3> meshVertices = new List<Vector3>();
@@ -175,10 +129,6 @@ public class MarchingCubes : MonoBehaviour {
 		}
 		return mesh;
 	}
-
-	#endregion
-
-	#region Structs.
 
 	#endregion
 
@@ -392,7 +342,6 @@ public class MarchingCubes : MonoBehaviour {
 			return vertexPos;
 		}
 	}
-
 
 	public class TriangleTable {
 		//Variables.
@@ -1843,16 +1792,6 @@ public class MeshData {
 		Vector3 sideAB = pointB - pointA;
 		Vector3 sideAC = pointC - pointA;
 		return Vector3.Cross(sideAB, sideAC).normalized;
-	}
-}
-
-public class VertexData {
-	public int id;
-	public Vector3 position;
-
-	public VertexData(int a_id, Vector3 a_pos) {
-		id = a_id;
-		position = a_pos;
 	}
 }
 

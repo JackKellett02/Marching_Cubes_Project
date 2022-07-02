@@ -28,8 +28,8 @@ public class BenchmarkScript : MonoBehaviour {
 	#region Private Variable Declarations.
 
 	private float startTime = 0.0f;
-	private float averageFrameRate = 0.0f;
-	private float minFrameRate = float.MaxValue;
+	private int averageFrameRate = 0;
+	private int minFrameRate = int.MaxValue;
 	private float destructionTime = 0.0f;
 	private int frameCounter = 0;
 	private bool benchMarkStarted = false;
@@ -78,8 +78,8 @@ public class BenchmarkScript : MonoBehaviour {
 
 			//Update current average frame rate.
 			float runTime = Time.time - startTime;
-			averageFrameRate = frameCounter / runTime;
-			float currentFramerate = 1.0f / Time.deltaTime;
+			averageFrameRate = Mathf.RoundToInt(frameCounter / runTime);
+			int currentFramerate = Mathf.RoundToInt(1.0f / Time.deltaTime);
 			if (currentFramerate <= minFrameRate) {
 				minFrameRate = currentFramerate;
 			}

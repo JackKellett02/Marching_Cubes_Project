@@ -15,6 +15,7 @@ public class LevelChunkScript : MonoBehaviour {
 	private Vector3 chunkDimensions = Vector3.one;
 
 	private Queue<MapThreadInfo<ChunkGenerationData>> chunkThreadInfo;
+	private Queue<MapThreadInfo<MeshData>> meshDataInfoQueue = null;
 	private static Dictionary<Vector2, NoiseUtility.FallOffData> falloffMap;
 	#endregion
 
@@ -41,6 +42,14 @@ public class LevelChunkScript : MonoBehaviour {
 			}
 		}
 
+		if (meshDataInfoQueue != null) {
+			if (meshDataInfoQueue.Count > 0) {
+				for (int i = 0; i < meshDataInfoQueue.Count; i++) {
+					MapThreadInfo<MeshData> threadInfo = meshDataInfoQueue.Dequeue();
+					threadInfo.callback(threadInfo.parameter);
+				}
+			}
+		}
 	}
 
 	private float[,,] PopulateGridMap(int xSize, int ySize, int zSize, float a_heightMultiplier, AnimationCurve a_terrainHeights, ChunkGenerationData chunkData, bool useNormData) {
@@ -112,7 +121,7 @@ public class LevelChunkScript : MonoBehaviour {
 		//Generate the actual mesh.
 		Mesh mesh = new Mesh();
 		mesh.name = gameObject.name + "_Mesh";
-		Debug.Log("Mesh Data Recieved.");
+		//Debug.Log("Mesh Data Recieved.");
 		levelMeshFilter.mesh = mesh;
 		levelMeshCollider.sharedMesh = mesh;
 		mesh.vertices = a_meshData.vertices.ToArray();
@@ -124,17 +133,38 @@ public class LevelChunkScript : MonoBehaviour {
 		#endregion
 	}
 
+	private void MeshDataThread(MapData chunkData, Action<MeshData> a_callback) {
+		if (meshDataInfoQueue == null) {
+			meshDataInfoQueue = new Queue<MapThreadInfo<MeshData>>();
+		}
+		MeshData meshData = MarchingCubes.GenerateMesh(chunkData.map, chunkData.normalMap, chunkData.cubeSize);
+		lock (meshDataInfoQueue) {
+			meshDataInfoQueue.Enqueue(new MapThreadInfo<MeshData>(a_callback, meshData));
+		}
+	}
+
+	private void RequestMeshData(MapData chunkData, Action<MeshData> a_callback) {
+		ThreadStart threadStart = delegate {
+			MeshDataThread(chunkData, a_callback);
+		};
+		//Debug.Log("Mesh Data Thread Started.");
+
+		Thread thread = new Thread(threadStart);
+		thread.Name = "Mesh Data Thread.";
+		thread.Start();
+	}
+
 	private void GenerateChunk(ChunkGenerationData generationData) {
 		//Generate the grid map.
 		float[,,] gridMap = PopulateGridMap(generationData.m_gridSize.x, generationData.m_gridSize.y, generationData.m_gridSize.z, generationData.m_heightMultiplier, generationData.m_terrainHeights, generationData, false);
 		float[,,] normMap = PopulateGridMap(generationData.m_gridSize.x + 2, generationData.m_gridSize.y, generationData.m_gridSize.z + 2, generationData.m_heightMultiplier, generationData.m_terrainHeights, generationData, true);
 
 		//Pass the grid map and cube size to the marching cubes script to generate the mesh.
-		MarchingCubes.RequestMeshData(new MapData(gridMap, normMap, generationData.m_cubeSize), OnMeshDataRecieved);
+		RequestMeshData(new MapData(gridMap, normMap, generationData.m_cubeSize), OnMeshDataRecieved);
 	}
 
 	private void OnNoiseDataRecieved(ChunkGenerationData a_chunkData) {
-		Debug.Log("Chunk Data Recieved.");
+		//Debug.Log("Chunk Data Recieved.");
 		GenerateChunk(a_chunkData);
 	}
 
@@ -159,11 +189,11 @@ public class LevelChunkScript : MonoBehaviour {
 
 	private void RequestChunkData(ChunkGenerationData generationData, Action<ChunkGenerationData> a_callback) {
 		if (Application.isPlaying) {
-			Debug.Log("Starting chunk data generation.");
+			//Debug.Log("Starting chunk data generation.");
 			ChunkDataThread(generationData, a_callback);
 		} else {
 			ThreadStart threadStart = delegate { ChunkDataThread(generationData, a_callback); };
-			Debug.Log("Chunk Data Thread started.");
+			//Debug.Log("Chunk Data Thread started.");
 
 			Thread thread = new Thread(threadStart);
 			thread.Name = "Chunk Data Thread.";
@@ -180,7 +210,14 @@ public class LevelChunkScript : MonoBehaviour {
 			chunkThreadInfo.Clear();
 			chunkThreadInfo = null;
 		}
+
+		if (meshDataInfoQueue != null) {
+			meshDataInfoQueue.Clear();
+			meshDataInfoQueue = null;
+		}
+
 		chunkThreadInfo = new Queue<MapThreadInfo<ChunkGenerationData>>();
+		meshDataInfoQueue = new Queue<MapThreadInfo<MeshData>>();
 		chunkDimensions = a_chunkDimensions;
 		ChunkGenerationData data = new ChunkGenerationData(gameObject.transform.position, a_chunkDimensions, gridSize, cubeSize, a_surfaceThreshold, noiseSettings, a_terrainHeights, a_fHeightMultiplier);
 		RequestChunkData(data, OnNoiseDataRecieved);
