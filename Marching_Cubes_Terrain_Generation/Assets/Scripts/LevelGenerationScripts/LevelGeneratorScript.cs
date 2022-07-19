@@ -41,7 +41,6 @@ public class LevelGeneratorScript : MonoBehaviour {
 	#endregion
 
 	#region Private Variables.
-	private GameObject chunkPrototype = null;
 	private List<List<GameObject>> levelChunks = null;
 	private Queue<GameObject> chunkQueue = null;
 	#endregion
@@ -126,7 +125,6 @@ public class LevelGeneratorScript : MonoBehaviour {
 		//Create the chunks and position them correctly.
 		int startPosX = (0 - (int)(levelSize.x * 0.5f));
 		int startPosZ = (0 - (int)(levelSize.y * 0.5f));
-		int lastX = startPosX;
 		int chunkCount = 0;
 		for (int z = startPosZ; z < startPosZ + levelSize.y; z++) {
 			List<GameObject> currentRow = new List<GameObject>();

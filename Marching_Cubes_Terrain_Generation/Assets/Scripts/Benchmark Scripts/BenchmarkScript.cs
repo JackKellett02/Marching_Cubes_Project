@@ -85,17 +85,18 @@ public class BenchmarkScript : MonoBehaviour {
 			}
 
 			//Update benchmark UI.
-			frameRateText.text = "Current Framerate: " + currentFramerate + " FPS\nAverage Framerate: " + averageFrameRate + " FPS\nMinimum Framerate: " + minFrameRate + " FPS";
+			frameRateText.text = "Framerate: " + currentFramerate + " FPS\nAverage Framerate: " + averageFrameRate + " FPS\nMinimum Framerate: " + minFrameRate + " FPS";
 
 			//Check if simulation over
 			if (chunksComplete >= totalChunkCount) {
 				//Increment Iteration Counter.
 				iterationsComplete++;
 				if (iterationsComplete >= testIterations) {
+					//End benchmark.
+					Debug.Log("End Time: " + Time.time);
 					int score = CalculateScore();
 					UpdateHighScore(score);
 					benchMarkStarted = false;
-					Debug.Log("End Time: " + Time.time);
 				} else {
 					//Start next iteration.
 					if (levelGen != null) {
