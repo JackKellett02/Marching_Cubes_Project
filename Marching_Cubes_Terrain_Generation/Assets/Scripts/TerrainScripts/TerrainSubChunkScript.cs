@@ -1,10 +1,9 @@
-using System;
 using System.Collections;
+using System;
 using System.Collections.Generic;
-using System.Threading;
 using UnityEngine;
 
-public class LevelChunkScript : MeshGeneratorScript {
+public class TerrainSubChunkScript : MeshGeneratorScript {
 	#region Variables to assign via the unity inspector (SerialiseFields).
 
 	#endregion
