@@ -10,11 +10,10 @@ using UnityEngine;
 /// DO NOT INSTANTIATE THIS CLASS AS IT IS ONLY THE BASE CLASS
 /// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 /// </summary>
-public class MeshGeneratorScript : MonoBehaviour {
+public class MeshGeneratorScript {
 	#region Private Variables.
-	protected MeshFilter levelMeshFilter = null;
-	protected MeshCollider levelMeshCollider = null;
 	protected Vector3 chunkDimensions = Vector3.one;
+	protected Action<MeshData> meshCallback = null;
 
 	protected Queue<MapThreadInfo<ChunkGenerationData>> chunkThreadInfo;
 	protected Queue<MapThreadInfo<MeshData>> meshDataInfoQueue = null;
@@ -34,15 +33,6 @@ public class MeshGeneratorScript : MonoBehaviour {
 	#endregion
 
 	#region Protected class Functions.
-	// Start is called before the first frame update
-	protected virtual void Start() {
-
-	}
-
-	protected virtual void Awake() {
-
-	}
-
 	// Update is called once per frame
 	protected virtual void Update() {
 		if (chunkThreadInfo != null) {
@@ -68,22 +58,6 @@ public class MeshGeneratorScript : MonoBehaviour {
 				}
 			}
 		}
-	}
-
-	protected void OnMeshDataRecieved(MeshData a_meshData) {
-		//Generate the actual mesh.
-		Mesh mesh = new Mesh();
-		mesh.name = gameObject.name + "_Mesh";
-		//Debug.Log("Mesh Data Recieved.");
-		levelMeshFilter.mesh = mesh;
-		levelMeshCollider.sharedMesh = mesh;
-		mesh.vertices = a_meshData.vertices.ToArray();
-		mesh.triangles = a_meshData.triangles.ToArray();
-		mesh.normals = a_meshData.normals;
-
-		#region BENCHMARK.
-		BenchmarkScript.IncrementCompleteChunks();
-		#endregion
 	}
 
 	protected void RequestMeshData(MapData chunkData, Action<MeshData> a_callback) {
@@ -118,13 +92,26 @@ public class MeshGeneratorScript : MonoBehaviour {
 	#endregion
 
 	#region Private Functions.
-	private void GenerateChunk(ChunkGenerationData generationData) {
+
+	private void GenerateChunk(ChunkGenerationData generationData)
+	{
 		//Generate the grid map.
-		float[,,] gridMap = PopulateGridMap(generationData.m_gridSize.x, generationData.m_gridSize.y, generationData.m_gridSize.z, generationData.m_heightMultiplier, generationData.m_terrainHeights, generationData, false);
-		float[,,] normMap = PopulateGridMap(generationData.m_gridSize.x + 2, generationData.m_gridSize.y, generationData.m_gridSize.z + 2, generationData.m_heightMultiplier, generationData.m_terrainHeights, generationData, true);
+		float[,,] gridMap = PopulateGridMap(generationData.m_gridSize.x, generationData.m_gridSize.y,
+			generationData.m_gridSize.z, generationData.m_heightMultiplier, generationData.m_terrainHeights,
+			generationData, false);
+		float[,,] normMap = PopulateGridMap(generationData.m_gridSize.x + 2, generationData.m_gridSize.y,
+			generationData.m_gridSize.z + 2, generationData.m_heightMultiplier, generationData.m_terrainHeights,
+			generationData, true);
 
 		//Pass the grid map and cube size to the marching cubes script to generate the mesh.
-		RequestMeshData(new MapData(gridMap, normMap, generationData.m_cubeSize), OnMeshDataRecieved);
+		if (meshCallback != null)
+		{
+			RequestMeshData(new MapData(gridMap, normMap, generationData.m_cubeSize), meshCallback);
+		}
+		else
+		{
+			Debug.LogError("ERROR: Mesh callback function not present in Mesh Generation Script.");
+		}
 	}
 
 	private void MeshDataThread(MapData chunkData, Action<MeshData> a_callback) {
@@ -140,7 +127,7 @@ public class MeshGeneratorScript : MonoBehaviour {
 
 	#region Public Access Functions (Getters and Setters).
 
-	public void StartGeneration(Vector3 a_chunkDimensions, Vector3Int gridSize, float cubeSize, float a_surfaceThreshold, NoiseSettings noiseSettings, AnimationCurve a_terrainHeights, float a_fHeightMultiplier) {
+	public void StartGeneration(Vector3 a_chunkPos, Vector3 a_chunkDimensions, Vector3Int gridSize, float cubeSize, float a_surfaceThreshold, NoiseSettings noiseSettings, AnimationCurve a_terrainHeights, float a_fHeightMultiplier, Action<MeshData> a_callback) {
 		//Clear the old queue and recreate it.
 		if (chunkThreadInfo != null) {
 			chunkThreadInfo.Clear();
@@ -152,24 +139,13 @@ public class MeshGeneratorScript : MonoBehaviour {
 			meshDataInfoQueue = null;
 		}
 
+		meshCallback = a_callback;
 		chunkThreadInfo = new Queue<MapThreadInfo<ChunkGenerationData>>();
 		meshDataInfoQueue = new Queue<MapThreadInfo<MeshData>>();
 		chunkDimensions = a_chunkDimensions;
 		ChunkGenerationData data = new ChunkGenerationData(
-			gameObject.transform.position, a_chunkDimensions, gridSize, cubeSize, a_surfaceThreshold, noiseSettings, a_terrainHeights, a_fHeightMultiplier);
+			a_chunkPos, a_chunkDimensions, gridSize, cubeSize, a_surfaceThreshold, noiseSettings, a_terrainHeights, a_fHeightMultiplier);
 		RequestChunkData(data, OnNoiseDataRecieved);
-	}
-
-	public void SetChunkMeshFilter(MeshFilter meshFilter) {
-		if (meshFilter) {
-			levelMeshFilter = meshFilter;
-		}
-	}
-
-	public void SetChunkMeshCollider(MeshCollider meshCollider) {
-		if (meshCollider) {
-			levelMeshCollider = meshCollider;
-		}
 	}
 	#endregion
 }

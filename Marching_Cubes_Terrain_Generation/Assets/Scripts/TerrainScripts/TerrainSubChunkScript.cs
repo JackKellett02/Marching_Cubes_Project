@@ -4,24 +4,11 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class TerrainSubChunkScript : MeshGeneratorScript {
-	#region Variables to assign via the unity inspector (SerialiseFields).
-
-	#endregion
-
 	#region Private Variables.
 	private static Dictionary<Vector2, NoiseUtility.FallOffData> falloffMap;
 	#endregion
 
 	#region Base Class Overridden Functions.
-	// Start is called before the first frame update
-	protected override void Start() {
-		base.Start();
-	}
-
-	protected override void Awake() {
-		base.Awake();
-	}
-
 	// Update is called once per frame
 	protected override void Update() {
 		base.Update();
@@ -122,14 +109,5 @@ public class TerrainSubChunkScript : MeshGeneratorScript {
 			falloffMap = NoiseUtility.GenerateLevelFalloffMap(levelSize, chunkSize, cubeSize);
 		}
 	}
-	#endregion
-
-
-	#region Unity On Functions.
-	private void OnDrawGizmos() {
-		Gizmos.color = Color.white;
-		Gizmos.DrawWireCube(transform.position, chunkDimensions);
-	}
-
 	#endregion
 }

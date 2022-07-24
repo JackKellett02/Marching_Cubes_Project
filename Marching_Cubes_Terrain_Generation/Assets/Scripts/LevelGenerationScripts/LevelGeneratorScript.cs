@@ -54,7 +54,7 @@ public class LevelGeneratorScript : MonoBehaviour {
 			for (int i = 0; i < chunksPerFrame; i++) {
 				if (chunkQueue.Count > 0) {
 					GameObject currentChunk = chunkQueue.Dequeue();
-					TerrainSubChunkScript currentGenerationScript = currentChunk.GetComponent<TerrainSubChunkScript>();
+					TerrainChunkScript currentGenerationScript = currentChunk.GetComponent<TerrainChunkScript>();
 					if (currentGenerationScript != null) {
 						//Get number of control nodes.
 						int sizeX = CalculateNumberOfControlNodesInGrid(chunkSize.x, chunkCubeSize);
@@ -62,7 +62,7 @@ public class LevelGeneratorScript : MonoBehaviour {
 						int sizeZ = CalculateNumberOfControlNodesInGrid(chunkSize.z, chunkCubeSize);
 						Vector3Int gridSize = new Vector3Int(sizeX, sizeY, sizeZ);
 
-						currentGenerationScript.StartGeneration(chunkSize, gridSize, chunkCubeSize, surfaceThreshold,
+						currentGenerationScript.StartChunkGeneration(chunkSize, gridSize, chunkCubeSize, surfaceThreshold,
 							noiseSettings, terrainHeights, heightMultiplier);
 					}
 				}
@@ -77,15 +77,15 @@ public class LevelGeneratorScript : MonoBehaviour {
 		newChunk.transform.parent = parent;
 
 		//Add the correct components.
-		TerrainSubChunkScript chunkGenerationScript = newChunk.AddComponent<TerrainSubChunkScript>();
+		TerrainChunkScript chunkGenerationScript = newChunk.AddComponent<TerrainChunkScript>();
 		MeshFilter meshFilter = newChunk.AddComponent<MeshFilter>();
 		MeshRenderer meshRenderer = newChunk.AddComponent<MeshRenderer>();
 		if (chunkMaterial) {
 			meshRenderer.material = chunkMaterial;
 		}
 		MeshCollider meshCollider = newChunk.AddComponent<MeshCollider>();
-		chunkGenerationScript.SetChunkMeshCollider(meshCollider);
-		chunkGenerationScript.SetChunkMeshFilter(meshFilter);
+		//chunkGenerationScript.SetChunkMeshCollider(meshCollider);
+		//chunkGenerationScript.SetChunkMeshFilter(meshFilter);
 
 		//Return it.
 		return newChunk;
@@ -167,9 +167,9 @@ public class LevelGeneratorScript : MonoBehaviour {
 			//Loop through the map and generate the meshes for each chunk.
 			for (int z = 0; z < levelChunks.Count; z++) {
 				for (int x = 0; x < levelChunks[z].Count; x++) {
-					TerrainSubChunkScript currentGenerationScript = levelChunks[z][x].GetComponent<TerrainSubChunkScript>();
+					TerrainChunkScript currentGenerationScript = levelChunks[z][x].GetComponent<TerrainChunkScript>();
 					if (currentGenerationScript != null) {
-						currentGenerationScript.StartGeneration(chunkSize, gridSize, chunkCubeSize,
+						currentGenerationScript.StartChunkGeneration(chunkSize, gridSize, chunkCubeSize,
 							surfaceThreshold, noiseSettings, terrainHeights, heightMultiplier);
 					}
 				}
