@@ -18,12 +18,17 @@ public class TerrainChunkScript : MonoBehaviour {
 	#endregion
 
 	#region Private Variables.
-	private List<List<GameObject>> levelChunks = null;
-	private Queue<GameObject> chunkQueue = null;
+	private Queue<TerrainSubChunkScript> chunkQueue = null;
 
 	private Vector3 chunkSize = Vector3.one;
 	private MeshFilter levelMeshFilter = null;
 	private MeshCollider levelMeshCollider = null;
+	private MeshRenderer levelMeshRenderer = null;
+	private Mesh chunkMesh = null;
+
+	private Vector3Int subgridSize = Vector3Int.zero;
+	private int subChunksComplete = 0;
+	private int subChunksTotal = int.MaxValue;
 	#endregion
 
 	#region Private Functions.
@@ -34,52 +39,56 @@ public class TerrainChunkScript : MonoBehaviour {
 		if (chunkQueue != null && Application.isPlaying) {
 			for (int i = 0; i < chunksPerFrame; i++) {
 				if (chunkQueue.Count > 0) {
-					GameObject currentChunk = chunkQueue.Dequeue();
-					TerrainSubChunkScript currentGenerationScript = new TerrainSubChunkScript();
-					//Get number of control nodes.
-					int sizeX = CalculateNumberOfControlNodesInGrid(chunkSize.x, chunkCubeSize);
-					int sizeY = CalculateNumberOfControlNodesInGrid(chunkSize.y, chunkCubeSize);
-					int sizeZ = CalculateNumberOfControlNodesInGrid(chunkSize.z, chunkCubeSize);
-					Vector3Int gridSize = new Vector3Int(sizeX, sizeY, sizeZ);
-
-					currentGenerationScript.StartGeneration(gameObject.transform.position, chunkSize, gridSize, chunkCubeSize, surfaceThreshold,
-						chunkNoiseSettings, terrainHeights, heightMultiplier, OnMeshDataRecieved);
+					TerrainSubChunkScript currentGenerationScript = chunkQueue.Dequeue();
+					if (currentGenerationScript != null) {
+						currentGenerationScript.StartGeneration(gameObject.transform.position, chunkSize, subgridSize,
+							chunkCubeSize, surfaceThreshold, chunkNoiseSettings, terrainHeights, heightMultiplier, OnMeshDataRecieved);
+					}
 				}
 			}
 		}
 
 	}
 
-	private GameObject ConstructChunk(Transform parent) {
-		//Initialise the new chunk.
-		GameObject newChunk = new GameObject();
-		newChunk.transform.parent = parent;
-
-		//Add the correct components.
-		levelMeshCollider = newChunk.AddComponent<MeshCollider>();
-		levelMeshFilter = newChunk.AddComponent<MeshFilter>();
-		MeshRenderer meshRenderer = newChunk.AddComponent<MeshRenderer>();
-		if (chunkMaterial) {
-			meshRenderer.material = chunkMaterial;
+	public void OnMeshDataRecieved(MeshData a_meshData) {
+		//Debug.Log("Mesh Data Recieved.");
+		//Null check for mesh.
+		if (chunkMesh == null) {
+			Debug.LogError("Invalid mesh in chunk: " + gameObject.name);
+			return;
+		}
+		//Update tris. 
+		List<int> triangles = new List<int>();
+		for (int i = 0; i < chunkMesh.triangles.Length; i++) {
+			triangles.Add(chunkMesh.triangles[i]);
+		}
+		int vertCount = chunkMesh.vertices.Length;
+		for (int i = 0; i < a_meshData.triangles.Count; i++) {
+			triangles.Add(a_meshData.triangles[i] + vertCount);
 		}
 
-		//Return it.
-		return newChunk;
-	}
+		//Update verts.
+		List<Vector3> vertices = new List<Vector3>();
+		for (int i = 0; i < chunkMesh.vertices.Length; i++) {
+			vertices.Add(chunkMesh.vertices[i]);
+		}
 
-	public void OnMeshDataRecieved(MeshData a_meshData) {
-		//Generate the actual mesh.
-		Mesh mesh = new Mesh();
-		mesh.name = gameObject.name + "_Mesh";
-		//Debug.Log("Mesh Data Recieved.");
-		levelMeshFilter.mesh = mesh;
-		levelMeshCollider.sharedMesh = mesh;
-		mesh.vertices = a_meshData.vertices.ToArray();
-		mesh.triangles = a_meshData.triangles.ToArray();
-		mesh.normals = a_meshData.normals;
+		for (int i = 0; i < a_meshData.vertices.Count; i++) {
+			vertices.Add(a_meshData.vertices[i]);
+		}
+
+		//Add them back to the list.
+		chunkMesh.vertices = a_meshData.vertices.ToArray();
+		chunkMesh.triangles = triangles.ToArray();
+		chunkMesh.normals = a_meshData.normals;
 
 		#region BENCHMARK.
-		BenchmarkScript.IncrementCompleteChunks();
+
+		subChunksComplete++;
+		if (subChunksComplete >= subChunksTotal) {
+			BenchmarkScript.IncrementCompleteChunks();
+		}
+
 		#endregion
 	}
 	#endregion
@@ -95,12 +104,26 @@ public class TerrainChunkScript : MonoBehaviour {
 	}
 
 	public void StartChunkGeneration(Vector3 a_chunkDimensions, Vector3Int gridSize, float cubeSize, float a_surfaceThreshold, NoiseSettings noiseSettings, AnimationCurve a_terrainHeights, float a_fHeightMultiplier) {
-		if (levelChunks != null) {
-			levelChunks.Clear();
-			levelChunks = null;
+		//Create the mesh and attach it to the mesh filter and collider.
+		chunkMesh = new Mesh();
+		chunkMesh.name = gameObject.name + "_Mesh";
+		if (levelMeshFilter == null) {
+			levelMeshFilter = gameObject.AddComponent<MeshFilter>();
 		}
-		levelChunks = new List<List<GameObject>>();
-		chunkQueue = new Queue<GameObject>();
+		if (levelMeshCollider == null) {
+			levelMeshCollider = gameObject.AddComponent<MeshCollider>();
+		}
+
+		if (levelMeshRenderer == null) {
+			levelMeshRenderer = gameObject.AddComponent<MeshRenderer>();
+		}
+		levelMeshCollider.sharedMesh = chunkMesh;
+		levelMeshFilter.mesh = chunkMesh;
+		if (chunkMaterial) {
+			levelMeshRenderer.material = chunkMaterial;
+		}
+
+		chunkQueue = new Queue<TerrainSubChunkScript>();
 		chunkSize = a_chunkDimensions;
 		chunkCubeSize = cubeSize;
 		surfaceThreshold = a_surfaceThreshold;
@@ -119,9 +142,8 @@ public class TerrainChunkScript : MonoBehaviour {
 		int startPosZ = (0 - (int)(levelSize.y * 0.5f));
 		int chunkCount = 0;
 		for (int z = startPosZ; z < startPosZ + levelSize.y; z++) {
-			List<GameObject> currentRow = new List<GameObject>();
 			for (int x = startPosX; x < startPosX + levelSize.x; x++) {
-				GameObject currentChunk;
+				TerrainSubChunkScript currentChunk = new TerrainSubChunkScript();
 
 				//Calculate position relative to center of level.
 				float localPosX = ((float)x) * chunkSize.x;
@@ -129,49 +151,34 @@ public class TerrainChunkScript : MonoBehaviour {
 				Vector3 localPos = new Vector3(localPosX, 0.0f, localPosZ);
 				Vector3 newPos = (gameObject.transform.position + localPos);
 
-				//Construct the new chunk.
-				currentChunk = ConstructChunk(this.transform);
-				currentChunk.SetActive(true);
-				currentChunk.name = "Chunk X: " + newPos.x + " Z: " + newPos.z;
-				currentChunk.gameObject.transform.position = newPos;
-
 
 				//Add it to the chunk map.
-				currentRow.Add(currentChunk);
 				chunkQueue.Enqueue(currentChunk);
 				chunkCount++;
 			}
-			levelChunks.Add(currentRow);
 		}
 
 		//Get number of control nodes.
 		int sizeX = CalculateNumberOfControlNodesInGrid(chunkSize.x, chunkCubeSize);
 		int sizeY = CalculateNumberOfControlNodesInGrid(chunkSize.y, chunkCubeSize);
 		int sizeZ = CalculateNumberOfControlNodesInGrid(chunkSize.z, chunkCubeSize);
-		Vector3Int subgridSize = new Vector3Int(sizeX, sizeY, sizeZ);
+		subgridSize = new Vector3Int(2, sizeY, 2);
+
+		#region Benchmark Stuff.
+		subChunksTotal = chunkCount;
+		#endregion
+
 
 		//Generate the chunk meshes here if in editor.
 		if (!Application.isPlaying) {
-			//Clear the chunk queue as it won't be used.
-			chunkQueue.Clear();
-
-
 			//Loop through the map and generate the meshes for each chunk.
-			for (int z = 0; z < levelChunks.Count; z++) {
-				for (int x = 0; x < levelChunks[z].Count; x++) {
-					TerrainSubChunkScript currentGenerationScript = levelChunks[z][x].GetComponent<TerrainSubChunkScript>();
-					if (currentGenerationScript != null) {
-						currentGenerationScript.StartGeneration(gameObject.transform.position, chunkSize, gridSize, chunkCubeSize,
-							surfaceThreshold, noiseSettings, terrainHeights, heightMultiplier, OnMeshDataRecieved);
-					}
-				}
+			for (int i = 0; i < chunkQueue.Count; i++) {
+				TerrainSubChunkScript currentGenerationScript = chunkQueue.Dequeue();
+				currentGenerationScript.StartGeneration(gameObject.transform.position, chunkSize, subgridSize, chunkCubeSize, surfaceThreshold,
+					chunkNoiseSettings, terrainHeights, heightMultiplier, OnMeshDataRecieved);
 			}
 		}
 
-		#region Benchmark Stuff.
-		BenchmarkScript.AddTotalChunkCount(chunkCount);
-		BenchmarkScript.AddVoxelsPerChunk(sizeX * sizeY * sizeZ);
-		#endregion
 	}
 
 	public static int CalculateNumberOfControlNodesInGrid(float gridSizeValue, float cubeSize) {

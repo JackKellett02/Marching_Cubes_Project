@@ -43,6 +43,8 @@ public class LevelGeneratorScript : MonoBehaviour {
 	#region Private Variables.
 	private List<List<GameObject>> levelChunks = null;
 	private Queue<GameObject> chunkQueue = null;
+
+	private Vector3Int gridSize = Vector3Int.zero;
 	#endregion
 
 	#region Private Functions.
@@ -56,12 +58,6 @@ public class LevelGeneratorScript : MonoBehaviour {
 					GameObject currentChunk = chunkQueue.Dequeue();
 					TerrainChunkScript currentGenerationScript = currentChunk.GetComponent<TerrainChunkScript>();
 					if (currentGenerationScript != null) {
-						//Get number of control nodes.
-						int sizeX = CalculateNumberOfControlNodesInGrid(chunkSize.x, chunkCubeSize);
-						int sizeY = CalculateNumberOfControlNodesInGrid(chunkSize.y, chunkCubeSize);
-						int sizeZ = CalculateNumberOfControlNodesInGrid(chunkSize.z, chunkCubeSize);
-						Vector3Int gridSize = new Vector3Int(sizeX, sizeY, sizeZ);
-
 						currentGenerationScript.StartChunkGeneration(chunkSize, gridSize, chunkCubeSize, surfaceThreshold,
 							noiseSettings, terrainHeights, heightMultiplier);
 					}
@@ -78,14 +74,6 @@ public class LevelGeneratorScript : MonoBehaviour {
 
 		//Add the correct components.
 		TerrainChunkScript chunkGenerationScript = newChunk.AddComponent<TerrainChunkScript>();
-		MeshFilter meshFilter = newChunk.AddComponent<MeshFilter>();
-		MeshRenderer meshRenderer = newChunk.AddComponent<MeshRenderer>();
-		if (chunkMaterial) {
-			meshRenderer.material = chunkMaterial;
-		}
-		MeshCollider meshCollider = newChunk.AddComponent<MeshCollider>();
-		//chunkGenerationScript.SetChunkMeshCollider(meshCollider);
-		//chunkGenerationScript.SetChunkMeshFilter(meshFilter);
 
 		//Return it.
 		return newChunk;
@@ -156,7 +144,7 @@ public class LevelGeneratorScript : MonoBehaviour {
 		int sizeX = CalculateNumberOfControlNodesInGrid(chunkSize.x, chunkCubeSize);
 		int sizeY = CalculateNumberOfControlNodesInGrid(chunkSize.y, chunkCubeSize);
 		int sizeZ = CalculateNumberOfControlNodesInGrid(chunkSize.z, chunkCubeSize);
-		Vector3Int gridSize = new Vector3Int(sizeX, sizeY, sizeZ);
+		gridSize = new Vector3Int(sizeX, sizeY, sizeZ);
 
 		//Generate the chunk meshes here if in editor.
 		if (!Application.isPlaying) {

@@ -9,11 +9,6 @@ public class TerrainSubChunkScript : MeshGeneratorScript {
 	#endregion
 
 	#region Base Class Overridden Functions.
-	// Update is called once per frame
-	protected override void Update() {
-		base.Update();
-	}
-
 	protected override float[,,] PopulateGridMap(int xSize, int ySize, int zSize, float a_heightMultiplier,
 		AnimationCurve a_terrainHeights, ChunkGenerationData chunkData, bool useNormData) {
 		//Create the map.
