@@ -34,7 +34,7 @@ public class MeshGeneratorScript {
 
 	#region Protected class Functions.
 	// Update is called once per frame
-	protected virtual void UpdateThreadInfo() {
+	public virtual void UpdateThreadInfo() {
 		if (chunkThreadInfo != null) {
 			if (chunkThreadInfo.Count > 0) {
 				if (!Application.isPlaying) {

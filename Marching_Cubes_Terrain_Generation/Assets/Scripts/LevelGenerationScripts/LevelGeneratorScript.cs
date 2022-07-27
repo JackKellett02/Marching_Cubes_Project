@@ -82,8 +82,7 @@ public class LevelGeneratorScript : MonoBehaviour {
 
 	#region Public Access Functions.
 
-	public void SetLevelSettings(float a_threshhold, float a_heightMultiplier, Vector2Int a_levelSize, Vector3 a_chunkSize, float a_cubeSize)
-	{
+	public void SetLevelSettings(float a_threshhold, float a_heightMultiplier, Vector2Int a_levelSize, Vector3 a_chunkSize, float a_cubeSize) {
 		surfaceThreshold = a_threshhold;
 		heightMultiplier = a_heightMultiplier;
 		levelSize = a_levelSize;
@@ -92,10 +91,14 @@ public class LevelGeneratorScript : MonoBehaviour {
 	}
 
 	public void CreateLevel() {
-		if (randomiseSeed)
-		{
+		if (randomiseSeed) {
 			RandomiseSeed();
 		}
+
+		if (chunkMaterial) {
+			TerrainChunkScript.SetChunkMaterial(chunkMaterial);
+		}
+
 		if (levelChunks != null) {
 			levelChunks.Clear();
 			levelChunks = null;
@@ -186,8 +189,7 @@ public class LevelGeneratorScript : MonoBehaviour {
 		levelChunks = null;
 	}
 
-	public void RandomiseSeed()
-	{
+	public void RandomiseSeed() {
 		noiseSettings.seed = (int)(noiseSettings.seed * Time.time) + (int)(noiseSettings.seed * Time.deltaTime) + (int)(noiseSettings.seed * (1.0f / Time.deltaTime));
 		System.Random prng = NoiseUtility.SeedNoise(noiseSettings);
 		noiseSettings.seed = prng.Next(-100000, 100000);
