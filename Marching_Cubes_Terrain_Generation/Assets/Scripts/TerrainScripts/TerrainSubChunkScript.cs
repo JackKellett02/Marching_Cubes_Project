@@ -77,11 +77,11 @@ public class TerrainSubChunkScript : MeshGeneratorScript {
 
 	protected override void ChunkDataThread(ChunkGenerationData generationData, Action<ChunkGenerationData> a_callback) {
 		//Generate Level Noise.
-		float[,] heightMap = NoiseGenerator.GenerateNoiseMap(generationData.m_gridSize.x, generationData.m_gridSize.z, generationData.m_cubeSize, generationData.m_chunkPos, generationData.m_noiseSettings);
-		float[,,] chunkNoise = NoiseGenerator.Generate3DNoiseMap(generationData.m_gridSize.x, generationData.m_gridSize.y, generationData.m_gridSize.z, generationData.m_cubeSize, generationData.m_chunkPos, generationData.m_noiseSettings);
+		float[,] heightMap = NoiseGenerator.GenerateNoiseMap(generationData.m_gridSize.x, generationData.m_gridSize.z, generationData.m_cubeSize, generationData.m_chunkWorldPos, generationData.m_noiseSettings);
+		float[,,] chunkNoise = NoiseGenerator.Generate3DNoiseMap(generationData.m_gridSize.x, generationData.m_gridSize.y, generationData.m_gridSize.z, generationData.m_cubeSize, generationData.m_chunkWorldPos, generationData.m_noiseSettings);
 
-		float[,] normHeightMap = NoiseGenerator.GenerateNoiseMap(generationData.m_gridSize.x + 2, generationData.m_gridSize.z + 2, generationData.m_cubeSize, generationData.m_chunkPos, generationData.m_noiseSettings);
-		float[,,] normChunkNoise = NoiseGenerator.Generate3DNoiseMap(generationData.m_gridSize.x + 2, generationData.m_gridSize.y, generationData.m_gridSize.z + 2, generationData.m_cubeSize, generationData.m_chunkPos, generationData.m_noiseSettings);
+		float[,] normHeightMap = NoiseGenerator.GenerateNoiseMap(generationData.m_gridSize.x + 2, generationData.m_gridSize.z + 2, generationData.m_cubeSize, generationData.m_chunkWorldPos, generationData.m_noiseSettings);
+		float[,,] normChunkNoise = NoiseGenerator.Generate3DNoiseMap(generationData.m_gridSize.x + 2, generationData.m_gridSize.y, generationData.m_gridSize.z + 2, generationData.m_cubeSize, generationData.m_chunkWorldPos, generationData.m_noiseSettings);
 
 		generationData.normChunkData = new ChunkData(normHeightMap, normChunkNoise);
 		generationData.chunkData = new ChunkData(heightMap, chunkNoise);

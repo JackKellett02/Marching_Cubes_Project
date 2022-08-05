@@ -1538,7 +1538,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   noiseSettings:
-    seed: 91021
+    seed: -83895
     offset: {x: 0, y: 0}
     scale: 50
   randomiseSeed: 1
@@ -1577,7 +1577,7 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   heightMultiplier: 64
-  levelSize: {x: 21, y: 21}
+  levelSize: {x: 3, y: 3}
   chunkSize: {x: 16, y: 128, z: 16}
   chunkCubeSize: 4
   chunkMaterial: {fileID: 2100000, guid: 72ac154a9086eac4693bf4e6bc81b51a, type: 2}

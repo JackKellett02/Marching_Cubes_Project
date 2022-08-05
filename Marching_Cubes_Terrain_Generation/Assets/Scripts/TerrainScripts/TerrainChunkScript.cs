@@ -46,7 +46,7 @@ public class TerrainChunkScript : MonoBehaviour {
 					SubChunkData data = chunkQueue.Dequeue();
 					TerrainSubChunkScript currentGenerationScript = data.generationScript;
 					if (currentGenerationScript != null) {
-						currentGenerationScript.StartGeneration(data.subChunkPos, chunkSize, subgridSize,
+						currentGenerationScript.StartGeneration(data.worldPos, data.subChunkPos, chunkSize, subgridSize,
 							chunkCubeSize, surfaceThreshold, chunkNoiseSettings, terrainHeights, heightMultiplier,
 							OnMeshDataRecieved);
 					}
@@ -153,24 +153,22 @@ public class TerrainChunkScript : MonoBehaviour {
 		chunkNoiseSettings = noiseSettings;
 
 		//Create the chunks and position them correctly.
-		int startPosX = (0 - (int)(chunkSize.x * 0.5f));
-		int startPosZ = (0 - (int)(chunkSize.z * 0.5f));
 		int chunkCount = 0;
-		for (int z = startPosZ; z < startPosZ + chunkSize.z; z++) {
-			for (int x = startPosX; x < startPosX + chunkSize.x; x++) {
+		for (int z = 1; z < gridSize.z; z++) {
+			for (int x = 1; x < gridSize.x; x++) {
 				TerrainSubChunkScript script = new TerrainSubChunkScript();
 
 				//Calculate position relative to center of level.
-				float localPosX = ((float)x) * chunkCubeSize;
-				float localPosZ = ((float)z) * chunkCubeSize;
+				float localPosX = (((float)x) * chunkCubeSize) - (gridSize.x * 0.5f);
+				float localPosZ = (((float)z) * chunkCubeSize) - (gridSize.z * 0.5f);
 				Vector3 localPos = new Vector3(localPosX, 0.0f, localPosZ);
-				Vector3 newPos = (gameObject.transform.position + localPos);
-
+				Vector3 newPos = localPos + gameObject.transform.position;
 
 				//Add it to the chunk map.
-				SubChunkData currentChunk = new SubChunkData();
+				SubChunkData currentChunk;
 				currentChunk.generationScript = script;
-				currentChunk.subChunkPos = newPos;
+				currentChunk.worldPos = newPos;
+				currentChunk.subChunkPos = localPos;
 				chunkQueue.Enqueue(currentChunk);
 				chunkCount++;
 			}
@@ -191,7 +189,7 @@ public class TerrainChunkScript : MonoBehaviour {
 			for (int i = 0; i < chunkQueue.Count; i++) {
 				SubChunkData data = chunkQueue.Dequeue();
 				TerrainSubChunkScript currentGenerationScript = data.generationScript;
-				currentGenerationScript.StartGeneration(data.subChunkPos, chunkSize, subgridSize, chunkCubeSize, surfaceThreshold,
+				currentGenerationScript.StartGeneration(data.worldPos, data.subChunkPos, chunkSize, subgridSize, chunkCubeSize, surfaceThreshold,
 					chunkNoiseSettings, terrainHeights, heightMultiplier, OnMeshDataRecieved);
 			}
 		}
@@ -223,6 +221,7 @@ public class TerrainChunkScript : MonoBehaviour {
 	private struct SubChunkData {
 		//Variables.
 		public TerrainSubChunkScript generationScript;
+		public Vector3 worldPos;
 		public Vector3 subChunkPos;
 	}
 }

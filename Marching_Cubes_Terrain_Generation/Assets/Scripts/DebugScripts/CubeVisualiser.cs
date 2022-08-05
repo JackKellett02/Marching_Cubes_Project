@@ -25,7 +25,7 @@ public class CubeVisualiser : MonoBehaviour
 	    }
 
         //Generate the next config.
-        levelMeshFilter.mesh = MarchingCubes.DebugGenMesh(config, map);
+        levelMeshFilter.mesh = MarchingCubes.DebugGenMesh(config, map, Vector3.zero);
     }
 
     private void Start()

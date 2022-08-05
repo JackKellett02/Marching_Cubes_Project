@@ -93,8 +93,7 @@ public class MeshGeneratorScript {
 
 	#region Private Functions.
 
-	private void GenerateChunk(ChunkGenerationData generationData)
-	{
+	private void GenerateChunk(ChunkGenerationData generationData) {
 		//Generate the grid map.
 		float[,,] gridMap = PopulateGridMap(generationData.m_gridSize.x, generationData.m_gridSize.y,
 			generationData.m_gridSize.z, generationData.m_heightMultiplier, generationData.m_terrainHeights,
@@ -104,12 +103,9 @@ public class MeshGeneratorScript {
 			generationData, true);
 
 		//Pass the grid map and cube size to the marching cubes script to generate the mesh.
-		if (meshCallback != null)
-		{
-			RequestMeshData(new MapData(gridMap, normMap, generationData.m_cubeSize), meshCallback);
-		}
-		else
-		{
+		if (meshCallback != null) {
+			RequestMeshData(new MapData(gridMap, normMap, generationData.m_cubeSize, generationData.m_chunkPos), meshCallback);
+		} else {
 			Debug.LogError("ERROR: Mesh callback function not present in Mesh Generation Script.");
 		}
 	}
@@ -118,7 +114,7 @@ public class MeshGeneratorScript {
 		if (meshDataInfoQueue == null) {
 			meshDataInfoQueue = new Queue<MapThreadInfo<MeshData>>();
 		}
-		MeshData meshData = MarchingCubes.GenerateMesh(chunkData.map, chunkData.normalMap, chunkData.cubeSize);
+		MeshData meshData = MarchingCubes.GenerateMesh(chunkData.map, chunkData.normalMap, chunkData.cubeSize, chunkData.pos);
 		lock (meshDataInfoQueue) {
 			meshDataInfoQueue.Enqueue(new MapThreadInfo<MeshData>(a_callback, meshData));
 		}
@@ -127,7 +123,7 @@ public class MeshGeneratorScript {
 
 	#region Public Access Functions (Getters and Setters).
 
-	public void StartGeneration(Vector3 a_chunkPos, Vector3 a_chunkDimensions, Vector3Int gridSize, float cubeSize, float a_surfaceThreshold, NoiseSettings noiseSettings, AnimationCurve a_terrainHeights, float a_fHeightMultiplier, Action<MeshData> a_callback) {
+	public void StartGeneration(Vector3 a_chunkWorldPos, Vector3 a_chunkPos, Vector3 a_chunkDimensions, Vector3Int gridSize, float cubeSize, float a_surfaceThreshold, NoiseSettings noiseSettings, AnimationCurve a_terrainHeights, float a_fHeightMultiplier, Action<MeshData> a_callback) {
 		//Clear the old queue and recreate it.
 		if (chunkThreadInfo != null) {
 			chunkThreadInfo.Clear();
@@ -144,13 +140,14 @@ public class MeshGeneratorScript {
 		meshDataInfoQueue = new Queue<MapThreadInfo<MeshData>>();
 		chunkDimensions = a_chunkDimensions;
 		ChunkGenerationData data = new ChunkGenerationData(
-			a_chunkPos, a_chunkDimensions, gridSize, cubeSize, a_surfaceThreshold, noiseSettings, a_terrainHeights, a_fHeightMultiplier);
+			a_chunkWorldPos, a_chunkPos, a_chunkDimensions, gridSize, cubeSize, a_surfaceThreshold, noiseSettings, a_terrainHeights, a_fHeightMultiplier);
 		RequestChunkData(data, OnNoiseDataRecieved);
 	}
 	#endregion
 }
 
 public struct ChunkGenerationData {
+	public readonly Vector3 m_chunkWorldPos;
 	public readonly Vector3 m_chunkPos;
 	public readonly Vector3 m_chunkDimensions;
 	public readonly Vector3Int m_gridSize;
@@ -162,7 +159,8 @@ public struct ChunkGenerationData {
 	public ChunkData chunkData;
 	public ChunkData normChunkData;
 
-	public ChunkGenerationData(Vector3 a_chunkPos, Vector3 a_chunkDimensions, Vector3Int a_gridSize, float a_cubeSize, float a_surfaceThreshold, NoiseSettings a_noiseSettings, AnimationCurve a_terrainHeights, float a_fHeightMultiplier) {
+	public ChunkGenerationData(Vector3 a_chunkWorldPos, Vector3 a_chunkPos, Vector3 a_chunkDimensions, Vector3Int a_gridSize, float a_cubeSize, float a_surfaceThreshold, NoiseSettings a_noiseSettings, AnimationCurve a_terrainHeights, float a_fHeightMultiplier) {
+		m_chunkWorldPos = a_chunkWorldPos;
 		m_chunkPos = a_chunkPos;
 		m_chunkDimensions = a_chunkDimensions;
 		m_gridSize = a_gridSize;

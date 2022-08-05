@@ -66,22 +66,22 @@ public static class MarchingCubes {
 	#endregion
 
 	#region Public Access Functions.
-	public static MeshData GenerateMesh(float[,,] map, float[,,] normalsMap, float cubeSize) {
+	public static MeshData GenerateMesh(float[,,] map, float[,,] normalsMap, float cubeSize, Vector3 a_offset) {
 		//Create the cube grid and the vert and tri lists.
-		CubeGrid cubeGrid = new CubeGrid(map, cubeSize);
+		CubeGrid cubeGrid = new CubeGrid(map, cubeSize, a_offset);
 		MeshData chunkMeshData = GetMeshData(cubeGrid, false);
 
 		//Create the cube grid used to calculate the normals.
-		CubeGrid normalGrid = new CubeGrid(normalsMap, cubeSize);
+		CubeGrid normalGrid = new CubeGrid(normalsMap, cubeSize, a_offset);
 		MeshData normalMeshData = GetMeshData(normalGrid, true);
 
 		chunkMeshData.normals = normalMeshData.GetNormals(chunkMeshData.vertices);
 		return chunkMeshData;
 	}
 
-	public static Mesh DebugGenMesh(int a_config, float[,,] map) {
+	public static Mesh DebugGenMesh(int a_config, float[,,] map, Vector3 a_offset) {
 		//Create the cube grid and the vert and tri lists.
-		CubeGrid cubeGrid = new CubeGrid(map, 1.0f);
+		CubeGrid cubeGrid = new CubeGrid(map, 1.0f, a_offset);
 		List<Vector3> meshVertices = new List<Vector3>();
 		List<int> meshTriangles = new List<int>();
 		Mesh mesh = new Mesh();
@@ -137,7 +137,7 @@ public static class MarchingCubes {
 	public class CubeGrid {
 		public Cube[,,] cubes;
 
-		public CubeGrid(float[,,] map, float cubeSize) {
+		public CubeGrid(float[,,] map, float cubeSize, Vector3 a_offset) {
 			int nodeCountX = map.GetLength(0);
 			int nodeCountY = map.GetLength(1);
 			int nodeCountZ = map.GetLength(2);
@@ -154,6 +154,7 @@ public static class MarchingCubes {
 						Vector3 position = new Vector3((-mapWidth / 2) + x * cubeSize + (cubeSize / 2),
 													   (-mapHeight / 2) + y * cubeSize + (cubeSize / 2),
 													   (-mapLength / 2) + z * cubeSize + (cubeSize / 2));
+						position += a_offset;
 
 						//Create the control node.
 						//Debug.Log("Node Value: " + map[x, y, z]);

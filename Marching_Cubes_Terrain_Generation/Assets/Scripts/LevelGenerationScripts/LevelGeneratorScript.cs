@@ -374,11 +374,13 @@ public struct MapData {
 	public readonly float[,,] map;
 	public readonly float[,,] normalMap;
 	public readonly float cubeSize;
+	public readonly Vector3 pos;
 
-	public MapData(float[,,] gridMap, float[,,] normMap, float size) {
+	public MapData(float[,,] gridMap, float[,,] normMap, float size, Vector3 a_pos) {
 		map = gridMap;
 		normalMap = normMap;
 		cubeSize = size;
+		pos = a_pos;
 	}
 }
 
