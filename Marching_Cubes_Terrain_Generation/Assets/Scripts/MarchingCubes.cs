@@ -1683,55 +1683,6 @@ public static class MarchingCubes {
 
 	#region Gizmos.
 	//private void OnDrawGizmos() {
-	//	if (cubeGrid != null && showGizmos) {
-	//		for (int x = 0; x < cubeGrid.cubes.GetLength(0); x++) {
-	//			for (int y = 0; y < cubeGrid.cubes.GetLength(1); y++) {
-	//				for (int z = 0; z < cubeGrid.cubes.GetLength(2); z++) {
-
-	//					Gizmos.color = (cubeGrid.cubes[x, y, z].bottomFrontLeft.active) ? Color.black : Color.white;
-	//					Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].bottomFrontLeft.position + gameObject.transform.position, Vector3.one * 0.4f);
-
-	//					Gizmos.color = (cubeGrid.cubes[x, y, z].bottomBackRight.active) ? Color.black : Color.white;
-	//					Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].bottomBackRight.position + gameObject.transform.position, Vector3.one * 0.4f);
-
-	//					Gizmos.color = (cubeGrid.cubes[x, y, z].bottomBackLeft.active) ? Color.black : Color.white;
-	//					Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].bottomBackLeft.position + gameObject.transform.position, Vector3.one * 0.4f);
-
-	//					Gizmos.color = (cubeGrid.cubes[x, y, z].bottomFrontRight.active) ? Color.black : Color.white;
-	//					Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].bottomFrontRight.position + gameObject.transform.position, Vector3.one * 0.4f);
-
-	//					Gizmos.color = (cubeGrid.cubes[x, y, z].topFrontLeft.active) ? Color.black : Color.white;
-	//					Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].topFrontLeft.position + gameObject.transform.position, Vector3.one * 0.4f);
-
-	//					Gizmos.color = (cubeGrid.cubes[x, y, z].topFrontRight.active) ? Color.black : Color.white;
-	//					Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].topFrontRight.position + gameObject.transform.position, Vector3.one * 0.4f);
-
-	//					Gizmos.color = (cubeGrid.cubes[x, y, z].topBackLeft.active) ? Color.black : Color.white;
-	//					Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].topBackLeft.position + gameObject.transform.position, Vector3.one * 0.4f);
-
-	//					Gizmos.color = (cubeGrid.cubes[x, y, z].topBackRight.active) ? Color.black : Color.white;
-	//					Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].topBackRight.position + gameObject.transform.position, Vector3.one * 0.4f);
-
-	//					Gizmos.color = Color.black;
-	//					Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].Position + gameObject.transform.position, Vector3.one * cubeGrid.cubes[x, y, z].size);
-
-	//					//	Gizmos.color = Color.grey;
-	//					//	Gizmos.DrawCube(cubeGrid.cubes[x, y, z].bottomLeft.position, Vector3.one * 0.15f);
-	//					//	Gizmos.DrawCube(cubeGrid.cubes[x, y, z].bottomFront.position, Vector3.one * 0.15f);
-	//					//	Gizmos.DrawCube(cubeGrid.cubes[x, y, z].bottomRight.position, Vector3.one * 0.15f);
-	//					//	Gizmos.DrawCube(cubeGrid.cubes[x, y, z].bottomBack.position, Vector3.one * 0.15f);
-	//					//	Gizmos.DrawCube(cubeGrid.cubes[x, y, z].topLeft.position, Vector3.one * 0.15f);
-	//					//	Gizmos.DrawCube(cubeGrid.cubes[x, y, z].topFront.position, Vector3.one * 0.15f);
-	//					//	Gizmos.DrawCube(cubeGrid.cubes[x, y, z].topRight.position, Vector3.one * 0.15f);
-	//					//	Gizmos.DrawCube(cubeGrid.cubes[x, y, z].topBack.position, Vector3.one * 0.15f);
-	//					//	Gizmos.DrawCube(cubeGrid.cubes[x, y, z].midBackLeft.position, Vector3.one * 0.15f);
-	//					//	Gizmos.DrawCube(cubeGrid.cubes[x, y, z].midBackRight.position, Vector3.one * 0.15f);
-	//					//	Gizmos.DrawCube(cubeGrid.cubes[x, y, z].midFrontLeft.position, Vector3.one * 0.15f);
-	//					//	Gizmos.DrawCube(cubeGrid.cubes[x, y, z].midFrontRight.position, Vector3.one * 0.15f);
-	//				}
-	//			}
-	//		}
-	//	}
 	//}
 	#endregion
 }

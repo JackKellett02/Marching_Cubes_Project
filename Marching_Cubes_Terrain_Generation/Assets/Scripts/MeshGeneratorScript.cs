@@ -1,7 +1,6 @@
 using System.Collections;
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using UnityEngine;
 
 /// <summary>
@@ -14,9 +13,7 @@ public class MeshGeneratorScript {
 	#region Private Variables.
 	protected Vector3 chunkDimensions = Vector3.one;
 	protected Action<MeshData> meshCallback = null;
-
-	protected Queue<MapThreadInfo<ChunkGenerationData>> chunkThreadInfo;
-	protected Queue<MapThreadInfo<MeshData>> meshDataInfoQueue = null;
+	protected TerrainChunkScript instance = null;
 	#endregion
 
 	#region Virtual Functions.
@@ -33,56 +30,26 @@ public class MeshGeneratorScript {
 	#endregion
 
 	#region Protected class Functions.
-	// Update is called once per frame
-	public virtual void UpdateThreadInfo() {
-		if (chunkThreadInfo != null) {
-			if (chunkThreadInfo.Count > 0) {
-				if (!Application.isPlaying) {
-					for (int i = 0; i < chunkThreadInfo.Count; i++) {
-						MapThreadInfo<ChunkGenerationData> threadInfo = chunkThreadInfo.Dequeue();
-						threadInfo.callback(threadInfo.parameter);
-					}
-				} else {
-					MapThreadInfo<ChunkGenerationData> threadInfo = chunkThreadInfo.Dequeue();
-					threadInfo.callback(threadInfo.parameter);
-				}
-
-			}
-		}
-
-		if (meshDataInfoQueue != null) {
-			if (meshDataInfoQueue.Count > 0) {
-				for (int i = 0; i < meshDataInfoQueue.Count; i++) {
-					MapThreadInfo<MeshData> threadInfo = meshDataInfoQueue.Dequeue();
-					threadInfo.callback(threadInfo.parameter);
-				}
-			}
-		}
-	}
-
 	protected void RequestMeshData(MapData chunkData, Action<MeshData> a_callback) {
-		ThreadStart threadStart = delegate {
-			MeshDataThread(chunkData, a_callback);
-		};
-		//Debug.Log("Mesh Data Thread Started.");
+		MeshDataThread(chunkData, a_callback);
 
-		Thread thread = new Thread(threadStart);
-		thread.Name = "Mesh Data Thread.";
-		thread.Start();
+		//ThreadStart threadStart = delegate {
+		//	MeshDataThread(chunkData, a_callback);
+		//};
+		//Thread thread = new Thread(threadStart);
+		//thread.Name = "Mesh Data Thread.";
+		//thread.Start();
+		//Debug.Log("Mesh Data Thread Started.");
 	}
 
 	protected void RequestChunkData(ChunkGenerationData generationData, Action<ChunkGenerationData> a_callback) {
-		if (Application.isPlaying) {
-			//Debug.Log("Starting chunk data generation.");
-			ChunkDataThread(generationData, a_callback);
-		} else {
-			ThreadStart threadStart = delegate { ChunkDataThread(generationData, a_callback); };
-			//Debug.Log("Chunk Data Thread started.");
+		ChunkDataThread(generationData, a_callback);
 
-			Thread thread = new Thread(threadStart);
-			thread.Name = "Chunk Data Thread.";
-			thread.Start();
-		}
+		//ThreadStart threadStart = delegate { ChunkDataThread(generationData, a_callback); }
+		//Thread thread = new Thread(threadStart);
+		//thread.Name = "Chunk Data Thread.";
+		//thread.Start();
+		//Debug.Log("Chunk Data Thread started.");
 	}
 
 	protected void OnNoiseDataRecieved(ChunkGenerationData a_chunkData) {
@@ -103,44 +70,38 @@ public class MeshGeneratorScript {
 			generationData, true);
 
 		//Pass the grid map and cube size to the marching cubes script to generate the mesh.
-		if (meshCallback != null) {
-			RequestMeshData(new MapData(gridMap, normMap, generationData.m_cubeSize, generationData.m_chunkPos), meshCallback);
-		} else {
+		if (meshCallback == null) {
 			Debug.LogError("ERROR: Mesh callback function not present in Mesh Generation Script.");
+			return;
 		}
+
+		RequestMeshData(new MapData(gridMap, normMap, generationData.m_cubeSize, generationData.m_chunkPos), meshCallback);
 	}
 
 	private void MeshDataThread(MapData chunkData, Action<MeshData> a_callback) {
-		if (meshDataInfoQueue == null) {
-			meshDataInfoQueue = new Queue<MapThreadInfo<MeshData>>();
-		}
+		//Get the mesh data and send it back to the main thread.
 		MeshData meshData = MarchingCubes.GenerateMesh(chunkData.map, chunkData.normalMap, chunkData.cubeSize, chunkData.pos);
-		lock (meshDataInfoQueue) {
-			meshDataInfoQueue.Enqueue(new MapThreadInfo<MeshData>(a_callback, meshData));
+
+		if (instance == null) {
+			//Early out.
+			Debug.LogError("ERROR: INSTANCE OF CHUNK SCRIPT IS NULL IN MESH GENERATION SCRIPT");
+			return;
 		}
+
+		instance.EnqueueMeshThreadInfo(new MapThreadInfo<MeshData>(a_callback, meshData));
+
 	}
 	#endregion
 
 	#region Public Access Functions (Getters and Setters).
 
-	public void StartGeneration(Vector3 a_chunkWorldPos, Vector3 a_chunkPos, Vector3 a_chunkDimensions, Vector3Int gridSize, float cubeSize, float a_surfaceThreshold, NoiseSettings noiseSettings, AnimationCurve a_terrainHeights, float a_fHeightMultiplier, Action<MeshData> a_callback) {
-		//Clear the old queue and recreate it.
-		if (chunkThreadInfo != null) {
-			chunkThreadInfo.Clear();
-			chunkThreadInfo = null;
-		}
-
-		if (meshDataInfoQueue != null) {
-			meshDataInfoQueue.Clear();
-			meshDataInfoQueue = null;
-		}
-
+	public void StartGeneration(Vector3 a_chunkWorldPos, Vector3 a_chunkPos, Vector3 a_chunkDimensions, Vector3Int gridSize, float cubeSize, float a_surfaceThreshold, NoiseSettings noiseSettings, AnimationCurve a_terrainHeights, float a_fHeightMultiplier, Action<MeshData> a_callback, TerrainChunkScript a_instance) {
+		instance = a_instance;
 		meshCallback = a_callback;
-		chunkThreadInfo = new Queue<MapThreadInfo<ChunkGenerationData>>();
-		meshDataInfoQueue = new Queue<MapThreadInfo<MeshData>>();
 		chunkDimensions = a_chunkDimensions;
 		ChunkGenerationData data = new ChunkGenerationData(
 			a_chunkWorldPos, a_chunkPos, a_chunkDimensions, gridSize, cubeSize, a_surfaceThreshold, noiseSettings, a_terrainHeights, a_fHeightMultiplier);
+		//Debug.Log("GENERATION STARTED.");
 		RequestChunkData(data, OnNoiseDataRecieved);
 	}
 	#endregion

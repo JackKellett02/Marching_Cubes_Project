@@ -1,9 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Threading;
 
 public class TerrainChunkScript : MonoBehaviour {
-	#region Static Private Variables.
+	#region Variables to assign via the unity inspector (SerilialiseField).
 	private NoiseSettings chunkNoiseSettings = null;
 	private float surfaceThreshold = 0.5f;
 	private AnimationCurve terrainHeights;
@@ -14,11 +15,17 @@ public class TerrainChunkScript : MonoBehaviour {
 	//[SerializeField]
 	//[Range(1, 100)]
 	private int chunksPerFrame = 1;
+
+	#endregion
+
+	#region Static Variables.
+
+	public static bool showGizmos = false;
 	#endregion
 
 	#region Private Variables.
-	private Queue<SubChunkData> chunkQueue = null;
 	private List<SubChunkData> chunkList = null;
+	private static Queue<MapThreadInfo<MeshData>> meshDataInfoQueue = null;
 
 	private Vector3 chunkSize = Vector3.one;
 	private MeshFilter levelMeshFilter = null;
@@ -31,6 +38,8 @@ public class TerrainChunkScript : MonoBehaviour {
 	private int subChunksGenerationStarted = 0;
 	private int subChunksTotal = int.MaxValue;
 	private bool chunkComplete = false;
+	private MarchingCubes.CubeGrid cubeGrid = null;
+	private int lastChunkIndex = 0;
 	#endregion
 
 	#region Private Functions.
@@ -39,31 +48,44 @@ public class TerrainChunkScript : MonoBehaviour {
 	}
 
 	private void Update() {
-		if (chunkQueue != null && Application.isPlaying && !chunkComplete) {
-			if (chunkQueue.Count > 0) {
-				for (int i = 0; i < chunksPerFrame; i++) {
+		if (chunkList == null || chunkList.Count <= 0 || chunkComplete) {
+			//Early out.
+			return;
+		}
 
-					SubChunkData data = chunkQueue.Dequeue();
-					TerrainSubChunkScript currentGenerationScript = data.generationScript;
-					if (currentGenerationScript != null) {
-						currentGenerationScript.StartGeneration(data.worldPos, data.subChunkPos, chunkSize, subgridSize,
-							chunkCubeSize, surfaceThreshold, chunkNoiseSettings, terrainHeights, heightMultiplier,
-							OnMeshDataRecieved);
-					}
-
-					subChunksGenerationStarted++;
-					chunkList.Add(data);
+		if (lastChunkIndex < chunkList.Count && subChunksGenerationStarted < subChunksTotal) {
+			for (int i = lastChunkIndex; i < lastChunkIndex + chunksPerFrame; i++) {
+				SubChunkData data = chunkList[i];
+				TerrainSubChunkScript currentGenerationScript = data.generationScript;
+				if (currentGenerationScript != null) {
+					ThreadStart threadStart = delegate {
+						currentGenerationScript.StartGeneration(
+							data.worldPos, data.subChunkPos, chunkSize, subgridSize, chunkCubeSize,
+							surfaceThreshold, chunkNoiseSettings, terrainHeights, heightMultiplier, OnMeshDataRecieved, this);
+					};
+					Thread thread = new Thread(threadStart);
+					thread.Name = "Subchunk_Thread";
+					thread.Start();
 				}
-
+				subChunksGenerationStarted++;
 			}
 
-			if (chunkList.Count > 0) {
-				for (int i = 0; i < chunkList.Count; i++) {
-					SubChunkData data = chunkList[i];
-					data.generationScript.UpdateThreadInfo();
-					chunkQueue.Enqueue(data);
-				}
+			lastChunkIndex += chunksPerFrame;
+			if (subChunksGenerationStarted >= subChunksTotal) {
+				lastChunkIndex = 0;
 			}
+
+		}
+
+		//Check for any thread info to process.
+		if (meshDataInfoQueue == null) {
+			//Early out.
+			return;
+		}
+
+		if (meshDataInfoQueue.Count > 0) {
+			MapThreadInfo<MeshData> meshThreadInfo = meshDataInfoQueue.Dequeue();
+			meshThreadInfo.callback(meshThreadInfo.parameter);
 		}
 	}
 
@@ -123,6 +145,8 @@ public class TerrainChunkScript : MonoBehaviour {
 
 	#region Public Access Functions.
 	public void StartChunkGeneration(Vector3 a_chunkDimensions, Vector3Int gridSize, float cubeSize, float a_surfaceThreshold, NoiseSettings noiseSettings, AnimationCurve a_terrainHeights, float a_fHeightMultiplier) {
+
+
 		//Create the mesh and attach it to the mesh filter and collider.
 		chunkMesh = new Mesh();
 		chunkMesh.name = gameObject.name + "_Mesh";
@@ -143,7 +167,7 @@ public class TerrainChunkScript : MonoBehaviour {
 		}
 
 		chunkComplete = false;
-		chunkQueue = new Queue<SubChunkData>();
+		lastChunkIndex = 0;
 		chunkList = new List<SubChunkData>();
 		chunkSize = a_chunkDimensions;
 		chunkCubeSize = cubeSize;
@@ -165,11 +189,11 @@ public class TerrainChunkScript : MonoBehaviour {
 				Vector3 newPos = localPos + gameObject.transform.position;
 
 				//Add it to the chunk map.
-				SubChunkData currentChunk;
+				SubChunkData currentChunk = new SubChunkData();
 				currentChunk.generationScript = script;
 				currentChunk.worldPos = newPos;
 				currentChunk.subChunkPos = localPos;
-				chunkQueue.Enqueue(currentChunk);
+				chunkList.Add(currentChunk);
 				chunkCount++;
 			}
 		}
@@ -179,21 +203,10 @@ public class TerrainChunkScript : MonoBehaviour {
 		subgridSize = new Vector3Int(2, sizeY, 2);
 
 		#region Benchmark Stuff.
+
+		subChunksComplete = 0;
 		subChunksTotal = chunkCount;
 		#endregion
-
-
-		//Generate the chunk meshes here if in editor.
-		if (!Application.isPlaying) {
-			//Loop through the map and generate the meshes for each chunk.
-			for (int i = 0; i < chunkQueue.Count; i++) {
-				SubChunkData data = chunkQueue.Dequeue();
-				TerrainSubChunkScript currentGenerationScript = data.generationScript;
-				currentGenerationScript.StartGeneration(data.worldPos, data.subChunkPos, chunkSize, subgridSize, chunkCubeSize, surfaceThreshold,
-					chunkNoiseSettings, terrainHeights, heightMultiplier, OnMeshDataRecieved);
-			}
-		}
-
 	}
 
 	public static int CalculateNumberOfControlNodesInGrid(float gridSizeValue, float cubeSize) {
@@ -208,6 +221,23 @@ public class TerrainChunkScript : MonoBehaviour {
 	public static void SetChunkMaterial(Material a_material) {
 		chunkMaterial = a_material;
 	}
+
+	public static void ClearMeshThreadInfo() {
+		if (meshDataInfoQueue == null) {
+			meshDataInfoQueue = new Queue<MapThreadInfo<MeshData>>();
+		}
+		meshDataInfoQueue.Clear();
+	}
+
+	public void EnqueueMeshThreadInfo(MapThreadInfo<MeshData> a_meshThreadInfo) {
+		if (meshDataInfoQueue == null) {
+			meshDataInfoQueue = new Queue<MapThreadInfo<MeshData>>();
+		}
+
+		lock (meshDataInfoQueue) {
+			meshDataInfoQueue.Enqueue(a_meshThreadInfo);
+		}
+	}
 	#endregion
 
 	#region Unity Events.
@@ -215,13 +245,68 @@ public class TerrainChunkScript : MonoBehaviour {
 	private void OnDrawGizmos() {
 		Gizmos.color = Color.white;
 		Gizmos.DrawWireCube(transform.position, chunkSize);
+		if (showGizmos) {
+			if (cubeGrid != null && showGizmos) {
+				for (int x = 0; x < cubeGrid.cubes.GetLength(0); x++) {
+					for (int y = 0; y < cubeGrid.cubes.GetLength(1); y++) {
+						for (int z = 0; z < cubeGrid.cubes.GetLength(2); z++) {
+
+							Gizmos.color = (cubeGrid.cubes[x, y, z].bottomFrontLeft.value <= 0) ? Color.black : Color.white;
+							Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].bottomFrontLeft.position + gameObject.transform.position, Vector3.one * 0.4f);
+
+							Gizmos.color = (cubeGrid.cubes[x, y, z].bottomBackRight.value <= 0) ? Color.black : Color.white;
+							Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].bottomBackRight.position + gameObject.transform.position, Vector3.one * 0.4f);
+
+							Gizmos.color = (cubeGrid.cubes[x, y, z].bottomBackLeft.value <= 0) ? Color.black : Color.white;
+							Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].bottomBackLeft.position + gameObject.transform.position, Vector3.one * 0.4f);
+
+							Gizmos.color = (cubeGrid.cubes[x, y, z].bottomFrontRight.value <= 0) ? Color.black : Color.white;
+							Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].bottomFrontRight.position + gameObject.transform.position, Vector3.one * 0.4f);
+
+							Gizmos.color = (cubeGrid.cubes[x, y, z].topFrontLeft.value <= 0) ? Color.black : Color.white;
+							Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].topFrontLeft.position + gameObject.transform.position, Vector3.one * 0.4f);
+
+							Gizmos.color = (cubeGrid.cubes[x, y, z].topFrontRight.value <= 0) ? Color.black : Color.white;
+							Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].topFrontRight.position + gameObject.transform.position, Vector3.one * 0.4f);
+
+							Gizmos.color = (cubeGrid.cubes[x, y, z].topBackLeft.value <= 0) ? Color.black : Color.white;
+							Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].topBackLeft.position + gameObject.transform.position, Vector3.one * 0.4f);
+
+							Gizmos.color = (cubeGrid.cubes[x, y, z].topBackRight.value <= 0) ? Color.black : Color.white;
+							Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].topBackRight.position + gameObject.transform.position, Vector3.one * 0.4f);
+
+							Gizmos.color = Color.black;
+							Gizmos.DrawWireCube(cubeGrid.cubes[x, y, z].Position + gameObject.transform.position, Vector3.one * cubeGrid.cubes[x, y, z].size);
+
+							Gizmos.color = Color.grey;
+							Gizmos.DrawCube(cubeGrid.cubes[x, y, z].bottomLeft.position, Vector3.one * 0.15f);
+							Gizmos.DrawCube(cubeGrid.cubes[x, y, z].bottomFront.position, Vector3.one * 0.15f);
+							Gizmos.DrawCube(cubeGrid.cubes[x, y, z].bottomRight.position, Vector3.one * 0.15f);
+							Gizmos.DrawCube(cubeGrid.cubes[x, y, z].bottomBack.position, Vector3.one * 0.15f);
+							Gizmos.DrawCube(cubeGrid.cubes[x, y, z].topLeft.position, Vector3.one * 0.15f);
+							Gizmos.DrawCube(cubeGrid.cubes[x, y, z].topFront.position, Vector3.one * 0.15f);
+							Gizmos.DrawCube(cubeGrid.cubes[x, y, z].topRight.position, Vector3.one * 0.15f);
+							Gizmos.DrawCube(cubeGrid.cubes[x, y, z].topBack.position, Vector3.one * 0.15f);
+							Gizmos.DrawCube(cubeGrid.cubes[x, y, z].midBackLeft.position, Vector3.one * 0.15f);
+							Gizmos.DrawCube(cubeGrid.cubes[x, y, z].midBackRight.position, Vector3.one * 0.15f);
+							Gizmos.DrawCube(cubeGrid.cubes[x, y, z].midFrontLeft.position, Vector3.one * 0.15f);
+							Gizmos.DrawCube(cubeGrid.cubes[x, y, z].midFrontRight.position, Vector3.one * 0.15f);
+						}
+					}
+				}
+			}
+		}
 	}
 	#endregion
 
-	private struct SubChunkData {
+	private class SubChunkData {
 		//Variables.
 		public TerrainSubChunkScript generationScript;
 		public Vector3 worldPos;
 		public Vector3 subChunkPos;
+
+		public SubChunkData() {
+
+		}
 	}
 }

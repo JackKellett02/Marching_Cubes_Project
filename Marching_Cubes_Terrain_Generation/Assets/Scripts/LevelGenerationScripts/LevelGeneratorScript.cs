@@ -35,6 +35,9 @@ public class LevelGeneratorScript : MonoBehaviour {
 	[SerializeField]
 	private Material chunkMaterial = null;
 
+	[SerializeField]
+	private bool showGizmos = false;
+
 	//[SerializeField]
 	//[Range(1, 100)]
 	private int chunksPerFrame = 1;
@@ -108,6 +111,9 @@ public class LevelGeneratorScript : MonoBehaviour {
 
 		//Make sure the chunk is valid before generation occurs.
 		ValidateChunk();
+
+		//Clear the old thread info if there is any.
+		TerrainChunkScript.ClearMeshThreadInfo();
 
 		//Make sure the level falloff map is initialised.
 		Vector2Int test = new Vector2Int(levelSize.x - 2, levelSize.y - 2);
@@ -304,6 +310,8 @@ public class LevelGeneratorScript : MonoBehaviour {
 	}
 
 	private void OnValidate() {
+		TerrainChunkScript.showGizmos = showGizmos;
+
 		//Ensure cube size stays in increments of 0.5
 		float newCubeSize = Mathf.Round(chunkCubeSize);
 		float checkSize = newCubeSize;
